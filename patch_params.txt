@@ -1,0 +1,610 @@
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\前列腺癌\精囊\svs\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\Work\maixin\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\patches

@@ -1,0 +1,13 @@
+source: D:\测试病例(100例)
+step_size: 1024
+patch_size: 1024
+patch: True
+seg: True
+stitch: True
+no_auto_skip: True
+save_dir: D:\测试病例(100例)\test\patches_0_1024
+preset: maixin.csv
+patch_level: 0
+process_list: None
+wsi_format: svs;kfb
+use_mp: True

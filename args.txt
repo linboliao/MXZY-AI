@@ -1,0 +1,14 @@
+source: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\slides
+csv_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\20x_slides.csv
+save_dir: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls
+preset: maixin.csv
+patch_level: 0
+patch_size: 448
+step_size: 448
+wsi_format: svs
+seg: True
+patch: True
+stitch: True
+use_mp: True
+process_list: None
+no_auto_skip: True

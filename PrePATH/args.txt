@@ -1,0 +1,14 @@
+source: D:/外部测试/云南省肿瘤重跑
+step_size: 224
+patch_size: 224
+csv_path: D:/外部测试/云南省肿瘤重跑\云南省肿瘤重跑_result\patches_cls\10x_slides.csv
+patch: True
+seg: True
+stitch: True
+no_auto_skip: True
+save_dir: D:/外部测试/云南省肿瘤重跑\云南省肿瘤重跑_result\patches_cls
+preset: maixin.csv
+patch_level: 0
+process_list: None
+wsi_format: svs
+use_mp: True

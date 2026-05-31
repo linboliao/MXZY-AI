@@ -1,0 +1,68 @@
+import openslide
+from torch.utils.data import Dataset
+import h5py
+from PIL import Image
+import numpy as np
+
+from tasks.utils.wsi import WSIOperator
+
+
+# 导入你使用的 WSI 库，例如：
+# import openslide
+
+class Whole_Slide_Bag_FP(Dataset):
+    def __init__(self, file_path, wsi_path, pretrained=False, custom_transforms=None, custom_downsample=1, target_patch_size=-1, fast_read=False):
+        self.wsi_path = wsi_path  # 存储路径，而非对象
+        self.pretrained = pretrained
+        self.roi_transforms = custom_transforms
+        self.file_path = file_path
+        self.fast_read = fast_read
+
+        if fast_read:
+            print('Loading coord file:', self.file_path)
+            with h5py.File(self.file_path, 'r') as hdf5_file:
+                self.coords = hdf5_file['coords'][:]
+            print('coords num:', len(self.coords))
+
+        with h5py.File(self.file_path, "r") as f:
+            dset = f['coords']
+            self.patch_level = f['coords'].attrs['patch_level']
+            self.patch_size = f['coords'].attrs['patch_size']
+            self.length = len(dset)
+            if target_patch_size > 0:
+                self.target_patch_size = (target_patch_size,) * 2
+            elif custom_downsample > 1:
+                self.target_patch_size = (self.patch_size // custom_downsample,) * 2
+            else:
+                self.target_patch_size = None
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, idx):
+        if self.fast_read:
+            coord = self.coords[idx]
+        else:
+            with h5py.File(self.file_path, 'r') as hdf5_file:
+                coord = hdf5_file['coords'][idx]
+
+        # 惰性初始化 WSI 对象
+        if not hasattr(self, 'wsi'):
+            # 根据你使用的库进行初始化，例如：
+            self.wsi = openslide.OpenSlide(self.wsi_path)
+            # self.wsi =  WSIOperator(self.wsi_path)
+            # 请务必替换成你实际使用的代码
+            # raise NotImplementedError("请在此处初始化你的 WSI 对象")
+
+        try:
+            img = self.wsi.read_region(coord, self.patch_level, (self.patch_size, self.patch_size)).convert('RGB')
+        except Exception as e:
+            print(f'Failed to read region: {coord}')
+            print(f'Exception: {e}')
+            img = Image.fromarray(np.ones((self.patch_size, self.patch_size, 3), dtype='uint8') * 255)
+
+        if self.target_patch_size is not None:
+            img = img.resize(self.target_patch_size)
+        if self.roi_transforms is not None:
+            img = self.roi_transforms(img)
+        return img, coord
