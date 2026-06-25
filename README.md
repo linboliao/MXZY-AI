@@ -255,19 +255,7 @@ Any clinical application requires independent validation, regulatory review, and
 
 ---
 
-## Citation
 
-If you use this repository, please cite the associated manuscript:
-
-```bibtex
-@article{liao2026stable_prostate_ai,
-  title   = {Toward Stable and Clinically Deployable AI for Histopathologic Diagnosis of Prostate Cancer},
-  author  = {Liao, Linbo and others},
-  journal = {Cell Reports Medicine},
-  year    = {2026},
-  note    = {Manuscript under review}
-}
-```
 
 Please update the citation information after publication.
 
