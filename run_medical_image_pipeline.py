@@ -1,4 +1,5 @@
 import argparse
+import ast
 import json
 import os
 import stat
@@ -11,6 +12,7 @@ import openslide
 import sys
 from typing import Dict, List, Any, Optional
 from collections import defaultdict
+from pathlib import Path
 
 # ================= 路径与环境初始化 =================
 work_dir = {
@@ -147,10 +149,14 @@ def gen_test_csv(args):
     if os.path.exists(test_csv):
         os.remove(test_csv)
     feat_dir = os.path.join(args.output_dir, f'feat_cls/pt_files/{args.model}')
+    if not os.path.isdir(feat_dir):
+        raise FileNotFoundError(f"特征目录不存在: {feat_dir}")
     feat_files = [
         entry.path for entry in os.scandir(feat_dir)
-        if entry.is_file() and os.path.getsize(entry.path) > 0
+        if entry.is_file() and entry.name.endswith('.pt') and os.path.getsize(entry.path) > 0
     ]
+    if not feat_files:
+        raise RuntimeError(f"未生成可用于 MIL 推理的 PT 特征文件: {feat_dir}")
     df = pd.DataFrame({
         "test_slide_path": feat_files,
         "test_label": [0 for _ in range(len(feat_files))],
@@ -308,17 +314,28 @@ def create_patch_yolo(args):
         return False
 
 def run_yolo(args, csv_file):
-    coord_dir = os.path.join(args.output_dir, 'patches_yolo')
+    # coord_dir = os.path.join(args.output_dir, 'patches_yolo')
+    out_dir = Path(
+        getattr(args, "yolo_output_dir", None) or Path(args.output_dir) / "yolo"
+    )
+    out_dir.mkdir(parents=True, exist_ok=True)
     task_args = argparse.Namespace(
-        model='yolo',
-        task='detect',
-        data_coors_dir=coord_dir,
-        data_slide_dir=args.wsi_dir,
+        slide_dir=args.wsi_dir,
         csv_path=csv_file,
-        ckpts='ultralytics/runs/detect/yolo11s_0512/weights/best.pt;ultralytics/runs/detect/yolo11s_0702/weights/best.pt;ultralytics/runs/detect/cbam/weights/best.pt;ultralytics/runs/detect/pki/weights/best.pt',
-        slide_ext='.svs',
-        batch_size=2,
-        output_dir=os.path.join(args.output_dir, 'yolo')
+        gpu=0,
+        ckpts=";".join([
+            "ultralytics/runs/detect/yolo11s_0512/weights/last.pt",
+            "ultralytics/runs/detect/yolo11s_0702/weights/last.pt",
+            "ultralytics/runs/detect/cbam/weights/best.pt",
+            "ultralytics/runs/detect/pki/weights/best.pt"
+        ]),
+        patch_size=2048,
+        infer_size=1536,
+        output_dir=str(out_dir),
+        show_level=0,
+        read_workers=1,
+        cpu_threads=2,
+        slide_cache_mb=128,
     )
     try:
         yolo2x3.main(task_args)
@@ -416,6 +433,24 @@ isup_mapping = {
 
 }
 
+
+def _classification_name(value):
+    """Normalize GeoJSON classification values returned as dicts or strings."""
+    if isinstance(value, dict):
+        return value.get("name")
+    if not isinstance(value, str):
+        return None
+
+    for parser in (json.loads, ast.literal_eval):
+        try:
+            parsed = parser(value)
+        except (ValueError, SyntaxError, TypeError, json.JSONDecodeError):
+            continue
+        if isinstance(parsed, dict):
+            return parsed.get("name")
+    return None
+
+
 def execute_phase_parallel(tasks, task_names, args, max_workers=2):
     """并行执行阶段任务"""
     print(f"🚀 开始并行执行 {len(tasks)} 个任务: {', '.join(task_names)}")
@@ -449,22 +484,34 @@ def _generate_result_files(output_dir: str) -> None:
     results = []
 
     cancer_df = pd.read_csv(cancer_csv, dtype={'slide_id': str})
-    tissue_df = pd.read_csv(tissue_csv, dtype={'slide_id': str})
+    has_positive_prediction = cancer_df['prediction'].astype(int).eq(1).any()
+    if os.path.exists(tissue_csv):
+        tissue_df = pd.read_csv(tissue_csv, dtype={'slide_id': str})
+    elif has_positive_prediction:
+        raise FileNotFoundError(f"阳性病例缺少 YOLO 面积结果: {tissue_csv}")
+    else:
+        tissue_df = pd.DataFrame(columns=['slide_id', 'area'])
     gleason_df = pd.read_csv(gleason_csv, dtype={'slide_id': str})
     # isup_df = pd.read_csv(isup_csv, dtype={'slide_id': str})
     import geopandas as gpd
     for slide_id, pred, votes_0 in zip(cancer_df['slide_id'], cancer_df['prediction'], cancer_df['votes_0']):
+        pred = int(pred)
         file_path = os.path.join(output_dir, 'yolo', f'{slide_id}-detect.geojson')
+        output_geojson = os.path.join(output_dir, f'{slide_id}.geojson')
         num = 0
-        if os.path.exists(file_path):
+        if pred == 1 and os.path.exists(file_path):
             gdf = gpd.read_file(file_path)
             gdf = gdf[
                 gdf['classification'].apply(
-                    lambda x: json.loads(x.replace("'", '"')).get('name') == 'Malignant'
+                    lambda value: _classification_name(value) == 'Malignant'
                 )
             ]
-            gdf.to_file(os.path.join(output_dir, f'{slide_id}.geojson'))
+            gdf.to_file(output_geojson)
             num = len(gdf)
+        else:
+            with open(output_geojson, 'w', encoding='utf-8') as f:
+                json.dump({"type": "FeatureCollection", "features": []}, f)
+
         if pred == 0 or num == 0:
             typ = 'Benign'
         else:
@@ -475,9 +522,14 @@ def _generate_result_files(output_dir: str) -> None:
         gleason = gleason_df[gleason_df['slide_id'].astype(str) == str(slide_id)]
         # isup = isup_df[isup_df['slide_id'].astype(str) == str(slide_id)]
 
-        tissue_area = tissue['area'].iloc[0] if not tissue.empty else "N/A"
-        gleason_grade = grade_mapping[gleason['prediction'].iloc[0]] if not gleason.empty else 'N/A'
-        isup_grade = isup_mapping[gleason_grade] if gleason_grade != 'N/A' else "N/A"
+        if typ == 'Benign':
+            tissue_area = "0%"
+            gleason_grade = "N/A"
+            isup_grade = "N/A"
+        else:
+            tissue_area = tissue['area'].iloc[0] if not tissue.empty else "N/A"
+            gleason_grade = grade_mapping[gleason['prediction'].iloc[0]] if not gleason.empty else 'N/A'
+            isup_grade = isup_mapping[gleason_grade] if gleason_grade != 'N/A' else "N/A"
 
         result = {
             "filename": f'{slide_id}.geojson',
@@ -530,8 +582,10 @@ def run_medical_image_pipeline(wsi_dir: str, output_dir: str, slide_list=None, p
     execution_stats = {}
     st = time.time()
     try:
-        create_patch_cls(args)
-        extract_features_parallel(args)
+        if not create_patch_cls(args):
+            raise RuntimeError("分类切块阶段失败")
+        if not extract_features_parallel(args):
+            raise RuntimeError("特征提取阶段失败")
         args.test_csv = gen_test_csv(args)
 
         st_phase1 = time.time()
@@ -540,19 +594,22 @@ def run_medical_image_pipeline(wsi_dir: str, output_dir: str, slide_list=None, p
 
         phase1_results = execute_phase_parallel(phase1_tasks, phase1_names, args, max_workers=3)
         all_results.update(phase1_results)
+        failed_phase1 = [name for name, result in phase1_results.items() if result is not True]
+        if failed_phase1:
+            raise RuntimeError(f"阶段1任务失败: {', '.join(failed_phase1)}")
 
         phase1_time = time.time() - st_phase1
         execution_stats["phase1_time"] = phase1_time
         print(f"⏱️ 阶段1执行时间: {phase1_time:.2f}秒")
         
         args.csv_path = os.path.join(args.output_dir, 'cancer/merged_voting_result.csv')
-        run_yolo_parallel(args)
+        if not run_yolo_parallel(args):
+            raise RuntimeError("YOLO 推理阶段失败")
         
         total_time = time.time() - st
         print(f"⏱️ 总执行时间: {total_time:.2f}秒")
 
-        if all_results.get("癌症诊断", True):
-            _generate_result_files(output_dir)
+        _generate_result_files(output_dir)
 
         return {
             "success": True, "results": all_results,
@@ -591,7 +648,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(f"运行参数: {args}")
     
-    run_medical_image_pipeline(
+    result = run_medical_image_pipeline(
         wsi_dir=args.wsi_dir,
         output_dir=args.output_dir,
         slide_list=args.slide_list,
@@ -600,4 +657,6 @@ if __name__ == "__main__":
         model=args.model,
         normal=args.normal
     )
+    if not result.get("success", False):
+        raise SystemExit(1)
 

@@ -1,0 +1,22 @@
+﻿# Web Viewer runtime data may contain protected health information.
+webviewer_data/
+worker_data/
+
+# Python runtime files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local IDE settings
+.idea/
+
+
+# Pipeline-generated diagnostics
+args.txt
+patch_params.txt
+
+# Local credentials and helper binaries
+.env
+.env.*.local
+PrePATH/models/token
+.codex_sftp_askpass*.exe

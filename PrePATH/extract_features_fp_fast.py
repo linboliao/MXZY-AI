@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-os.environ['HF_ENDPOINT'] = "https://hf-mirror.com"
+# os.environ['HF_ENDPOINT'] = "https://hf-mirror.com"
 os.environ['HF_HOME'] = r'.\PrePATH\models\ckpts\huggingface'
 
 import torch
@@ -15,7 +15,6 @@ import argparse
 from utils.file_utils import save_hdf5, collate_features
 import openslide
 import numpy as np
-from multiprocessing import Process
 import glob
 from wsi_core.Aslide.simple import ImgReader
 from datetime import datetime
@@ -44,22 +43,22 @@ def get_wsi_handle(wsi_path):
 
 def save_feature(path, feature):
     s = time.time()
-    torch.save(feature, str(path))
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    # Avoid PyTorch's Windows filename encoding path for non-ASCII directories.
+    with output_path.open('wb') as output_file:
+        torch.save(feature, output_file)
     e = time.time()
     print('Feature is sucessfully saved at: {}, cost: {:.1f} s'.format(path, e - s))
 
 
 def save_hdf5_subprocess(output_path, asset_dict):
-    kwargs = {'output_path': output_path, 'asset_dict': asset_dict,
-              'attr_dict': None, 'mode': 'w'}
-    process = Process(target=save_hdf5, kwargs=kwargs)
-    process.start()
+    return save_hdf5(output_path=output_path, asset_dict=asset_dict,
+                     attr_dict=None, mode='w')
 
 
 def save_feature_subprocess(path, feature):
-    kwargs = {'feature': feature, 'path': path}
-    process = Process(target=save_feature, kwargs=kwargs)
-    process.start()
+    return save_feature(path=path, feature=feature)
 
 
 def light_compute_w_loader(file_path, wsi_path, model,
@@ -253,4 +252,3 @@ def main(args):
 if __name__ == "__main__":
     args = parser.parse_args()
     main(args)
-

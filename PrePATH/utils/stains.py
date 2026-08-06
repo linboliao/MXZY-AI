@@ -1,6 +1,6 @@
 import os
 
-os.environ['HF_ENDPOINT'] = "https://hf-mirror.com"
+# os.environ['HF_ENDPOINT'] = "https://hf-mirror.com"
 os.environ['HF_HOME'] = r'.\PrePATH\models\ckpts\huggingface'
 import torch
 

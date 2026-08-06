@@ -1,14 +1,14 @@
-source: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\slides
-csv_path: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls\20x_slides.csv
-save_dir: D:\Workspace\学习\迈新\AI VS 中级医生病灶识别\result\patches_cls
+source: D:\Workspace\Work\前列腺癌\20250318-svs\codex_test_1834976T_可疑\input
+csv_path: None
+save_dir: D:\Workspace\Work\前列腺癌\20250318-svs\codex_test_1834976T_可疑\result\patches_yolo
 preset: maixin.csv
 patch_level: 0
-patch_size: 448
-step_size: 448
+patch_size: 2048
+step_size: 2048
 wsi_format: svs
 seg: True
 patch: True
 stitch: True
 use_mp: True
-process_list: None
 no_auto_skip: True
+process_list: None

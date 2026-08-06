@@ -9,11 +9,15 @@ import openslide
 from PIL import Image
 from openslide import lowlevel
 
-# sys.path.insert(0, r'/data2/lbliao/Code/aslide/')
-# from aslide import Aslide
-#
-# sys.path.insert(1, r'/data2/lbliao/Code/opensdpc/')
-# from opensdpc.opensdpc import OpenSdpc
+try:
+    from aslide import Aslide
+except ImportError:
+    Aslide = None
+
+try:
+    from opensdpc.opensdpc import OpenSdpc
+except ImportError:
+    OpenSdpc = None
 
 
 def is_background(img, threshold=20):
@@ -31,9 +35,13 @@ class WSIOperator(openslide.OpenSlide):
         suffix = filename.suffix.lower()
         self.suffix = suffix
         if self.suffix == '.kfb':
+            if Aslide is None:
+                raise ImportError("读取 KFB 切片需要安装 aslide")
             slide = Aslide(str(filename))
             self.mpp = slide.mpp
         elif self.suffix == '.sdpc':
+            if OpenSdpc is None:
+                raise ImportError("读取 SDPC 切片需要安装 opensdpc")
             slide = OpenSdpc(str(filename))
             self.mpp = slide.mpp
         else:

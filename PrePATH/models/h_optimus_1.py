@@ -1,18 +1,18 @@
 """
 https://huggingface.co/bioptimus/H-optimus-0
 """
-from pathlib import Path
+import os
 
 from huggingface_hub import login
 import torch
 import timm
 from torchvision import transforms
 
-script_dir = Path(__file__).resolve().parent
-token_path = str(script_dir / "token")
-with open(token_path, 'r') as f:
-    token = f.read().strip()
-login(token=token)
+def _login_if_configured():
+    """Use the standard environment variable without storing credentials in Git."""
+    token = os.getenv("HF_TOKEN")
+    if token:
+        login(token=token, add_to_git_credential=False)
 
 def get_trans():
     transform = transforms.Compose([
@@ -27,6 +27,7 @@ def get_trans():
 
 
 def get_model(device):
+    _login_if_configured()
     model = timm.create_model(
         "hf-hub:bioptimus/H-optimus-1", pretrained=True, init_values=1e-5, dynamic_img_size=False
     ).to(device)

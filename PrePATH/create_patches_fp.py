@@ -574,10 +574,9 @@ def main(args):
         fn = mp_seg_and_patch
     else:
         fn = seg_and_patch
-    try:
-        seg_times, patch_times = fn(**directories, **parameters, csv_path=args.csv_path, patch_size=args.patch_size, step_size=args.step_size, seg=args.seg, use_default_params=False, save_mask=True, stitch=args.stitch, patch_level=args.patch_level, patch=args.patch, process_list=process_list, auto_skip=args.no_auto_skip, wsi_format=wsi_format)
-    except TypeError as e:
-        traceback.print_exc()
+    result = fn(**directories, **parameters, csv_path=args.csv_path, patch_size=args.patch_size, step_size=args.step_size, seg=args.seg, use_default_params=False, save_mask=True, stitch=args.stitch, patch_level=args.patch_level, patch=args.patch, process_list=process_list, auto_skip=args.no_auto_skip, wsi_format=wsi_format)
+    if result is not None:
+        seg_times, patch_times = result
 
 if __name__ == "__main__":
 

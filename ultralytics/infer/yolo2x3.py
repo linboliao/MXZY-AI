@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 from ultralytics import YOLO
 from ultralytics.engine.results import Results
+from tasks.wsi import WSIOperator
 import xml.etree.ElementTree as ET
 import warnings
 
@@ -33,10 +34,33 @@ import argparse
 Image.MAX_IMAGE_PIXELS = None
 
 
-def is_background(img, threshold=20):
-    img_array = np.array(img)
+def is_background(img, threshold=20, sample_size=256):
+    """Fast background test using a thumbnail instead of the full patch."""
+    if sample_size and max(img.size) > sample_size:
+        scale = sample_size / max(img.size)
+        size = (max(1, int(img.width * scale)), max(1, int(img.height * scale)))
+        img = img.resize(size, Image.Resampling.BILINEAR)
+    img_array = np.asarray(img.convert('RGB'))
     diff = np.ptp(img_array, axis=2)  # ptp直接计算max-min
     return (diff > threshold).mean() < 0.15
+
+
+def select_background_level(level_dimensions, patch_size, sample_size):
+    """Select a pyramid level representing the level-0 patch near sample_size."""
+    if not sample_size or len(level_dimensions) <= 1:
+        return 0, (patch_size, patch_size)
+    level0_width, level0_height = level_dimensions[0]
+    candidates = []
+    for level, (width, height) in enumerate(level_dimensions):
+        downsample_x = level0_width / width
+        downsample_y = level0_height / height
+        preview_width = max(1, int(round(patch_size / downsample_x)))
+        preview_height = max(1, int(round(patch_size / downsample_y)))
+        preview_extent = max(preview_width, preview_height)
+        score = abs(np.log(max(preview_extent, 1) / sample_size))
+        candidates.append((score, level, (preview_width, preview_height)))
+    _, level, preview_size = min(candidates)
+    return level, preview_size
 
 
 class Result:
@@ -51,6 +75,17 @@ class Result:
         self.patch_size = opt.patch_size
         self.infer_size = opt.infer_size
         self.csv_path = opt.csv_path
+        # A single YOLO model instance is not safe to call concurrently from
+        # multiple threads. Keep patch inference serial unless explicitly
+        # overridden by a caller that provides isolated model instances.
+        self.read_workers = max(1, int(getattr(opt, 'read_workers', 1)))
+        self.cpu_threads = max(1, int(getattr(opt, 'cpu_threads', 2)))
+        torch.set_num_threads(self.cpu_threads)
+        cv2.setNumThreads(self.cpu_threads)
+        self.background_sample_size = max(0, int(getattr(opt, 'background_sample_size', 256)))
+        self.slide_cache_mb = max(0, int(getattr(opt, 'slide_cache_mb', 512)))
+        self.progress_position = max(0, int(getattr(opt, 'progress_position', 0)))
+        self.worker_label = str(getattr(opt, 'worker_label', ''))
 
         self.output_dir = opt.output_dir if opt.output_dir else os.path.join(opt.data_root, f'results/')
         os.makedirs(os.path.dirname(self.output_dir), exist_ok=True)
@@ -70,9 +105,10 @@ class Result:
 
     def open_slide(self, slide):
         base, ext = os.path.splitext(slide)
+        ext = ext.lower()
         slide_path = os.path.join(self.slide_dir, slide)
-        if ext == '.kfb':
-            wsi = Aslide(slide_path)
+        if ext in ('.kfb', '.sdpc'):
+            wsi = WSIOperator(slide_path)
         elif ext == '.tif':
             wsi = Image.open(slide_path)
             wsi.level_dimensions = [[wsi.size[0], wsi.size[1]]]
@@ -80,6 +116,12 @@ class Result:
         else:
             wsi = openslide.OpenSlide(slide_path)
             wsi.mpp = int(wsi.properties.get('aperio.AppMag', '20'))
+        cache_target = getattr(wsi, 'wsi', wsi)
+        if self.slide_cache_mb and hasattr(openslide, 'OpenSlideCache') and hasattr(cache_target, 'set_cache'):
+            try:
+                cache_target.set_cache(openslide.OpenSlideCache(self.slide_cache_mb * 1024 * 1024))
+            except openslide.OpenSlideError:
+                logger.warning(f'Unable to enable OpenSlide cache for {slide_path}')
         return wsi
 
     @property
@@ -111,12 +153,20 @@ class Result:
                     if os.path.splitext(os.path.basename(f))[0] in positive_ids
                 ]
 
-        # 3. 排除已经生成过 detect.geojson 的 slide
+        # 3. area.csv is the completion marker. A GeoJSON may have been
+        # written immediately before a crash, while benign slides may not
+        # produce a GeoJSON at all.
+        completed_ids = set()
+        area_path = os.path.join(self.output_dir, "area.csv")
+        if os.path.exists(area_path):
+            try:
+                area_df = pd.read_csv(area_path, dtype={"slide_id": str})
+                completed_ids = set(area_df["slide_id"].astype(str).str.strip())
+            except Exception as e:
+                print(f"读取完成记录 {area_path} 失败，将重新处理：{e}")
         final_slides = [
             f for f in filtered
-            if not os.path.exists(
-                os.path.join(self.output_dir, f"{os.path.splitext(os.path.basename(f))[0]}-detect.geojson")
-            )
+            if os.path.splitext(os.path.basename(f))[0] not in completed_ids
         ]
 
         return final_slides
@@ -144,22 +194,24 @@ def save_area(area_data, csv_path, key_column='slide_id'):
         csv_path (str): CSV文件的路径。
         key_column (str): 用于判断是否重复的列名，默认为'slide_id'。
     """
+    from filelock import FileLock
+
     new_df = pd.DataFrame(area_data)
+    lock_path = f"{csv_path}.lock"
+    os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+    with FileLock(lock_path):
+        if os.path.exists(csv_path):
+            existing_df = pd.read_csv(csv_path)
+            mask = existing_df[key_column].isin(new_df[key_column])
+            existing_df = existing_df[~mask]
+            updated_df = pd.concat([existing_df, new_df], ignore_index=True)
+        else:
+            updated_df = new_df
 
-    if os.path.exists(csv_path):
-        existing_df = pd.read_csv(csv_path)
-
-        mask = existing_df[key_column].isin(new_df[key_column])
-        existing_df_clean = existing_df[~mask]
-
-        updated_df = pd.concat([existing_df_clean, new_df], ignore_index=True)
-
-        updated_df.to_csv(csv_path, index=False)
-        print(f"成功更新CSV文件: {csv_path}。")
-
-    else:
-        new_df.to_csv(csv_path, index=False)
-        print(f"创建新的CSV文件并写入数据: {csv_path}")
+        temp_path = f"{csv_path}.{os.getpid()}.tmp"
+        updated_df.to_csv(temp_path, index=False)
+        os.replace(temp_path, csv_path)
+    print(f"Updated CSV file: {csv_path}")
 
 
 class GeoResults(Result):
@@ -403,26 +455,40 @@ class MultiGeoResults(GeoResults):
         total_patches = len(coordinates)
 
         t_coords, t_labels, t_confs = [], [], []
+        background_level, background_size = select_background_level(
+            wsi.level_dimensions, step, self.background_sample_size
+        )
+        print(
+            f"Background preview: level={background_level}, size={background_size}, "
+            f"level-0 patch={step}x{step}"
+        )
 
         def read_region(coord):
-            input_img = wsi.read_region(coord, 0, (step, step))
+            if background_level == 0:
+                input_img = wsi.read_region(coord, 0, (step, step))
+                if is_background(input_img, sample_size=self.background_sample_size):
+                    return None
+            else:
+                preview = wsi.read_region(coord, background_level, background_size)
+                if is_background(preview, sample_size=self.background_sample_size):
+                    return None
+                input_img = wsi.read_region(coord, 0, (step, step))
             input_img = input_img.convert("RGB")
-
-            if is_background(input_img):
-                return None
 
             with torch.no_grad():
                 coords, labels, confs = self.multi_infer(input_img, self.gpu)
 
             return coord, coords, labels, confs
 
-        print(f"\nProcessing slide: {slide}")
+        prefix = f"[{self.worker_label}] " if self.worker_label else ""
+        print(f"\n{prefix}Processing slide: {slide}")
 
-        with ThreadPoolExecutor(max_workers=30) as executor:
+        with ThreadPoolExecutor(max_workers=self.read_workers) as executor:
             futures = [executor.submit(read_region, c) for c in coordinates]
 
             # ✅ 进度条在主线程更新
-            with tqdm(total=total_patches, desc="Infer Patches", ncols=100) as pbar:
+            with tqdm(total=total_patches, desc=f"{prefix}Infer Patches", ncols=100,
+                      position=self.progress_position, leave=True) as pbar:
                 patch_count = 0
                 for future in as_completed(futures):
                     try:
@@ -468,6 +534,10 @@ parser.add_argument('--slide', type=str, default='')
 parser.add_argument('--slide_list', type=list, default=[])
 parser.add_argument('--output_dir', type=str, default='/NAS145/liaolinbo/Data/MXB/301/yolo2')
 parser.add_argument('--show_level', type=int, default=0)
+parser.add_argument('--read_workers', type=int, default=1, help='patch inference threads per slide')
+parser.add_argument('--cpu_threads', type=int, default=2, help='PyTorch/OpenCV CPU threads')
+parser.add_argument('--background_sample_size', type=int, default=256, help='thumbnail size for background detection')
+parser.add_argument('--slide_cache_mb', type=int, default=128, help='OpenSlide cache size in MB')
 
 
 def main(args):
