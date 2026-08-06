@@ -1,0 +1,19 @@
+[Unit]
+Description=MXZY-AI XMU GPU Worker
+After=network-online.target tailscaled.service
+Wants=network-online.target tailscaled.service
+
+[Service]
+Type=simple
+User=mxzy
+Group=mxzy
+WorkingDirectory=/opt/MXZY-AI
+Environment=MXZY_PYTHON=/opt/conda/envs/maixin/bin/python
+Environment=MXZY_WORKER_ENV=/etc/mxzy-ai/campus-worker.env
+ExecStart=/opt/MXZY-AI/deploy/linux/start_worker.sh
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

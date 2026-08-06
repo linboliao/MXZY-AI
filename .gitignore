@@ -18,5 +18,6 @@ patch_params.txt
 # Local credentials and helper binaries
 .env
 .env.*.local
+*.model-assets.zip
 PrePATH/models/token
 .codex_sftp_askpass*.exe

@@ -141,7 +141,13 @@ def health():
 @api.get("/api/worker/health")
 def worker_health():
     _authenticate_worker()
-    return jsonify({"status": "ok", "service": "MXZY-AI Worker Gateway"})
+    return jsonify(
+        {
+            "status": "ok",
+            "service": "MXZY-AI Worker Gateway",
+            "executionBackend": current_app.config["WEBVIEWER_EXECUTION_BACKEND"],
+        }
+    )
 
 
 @api.post("/api/worker/jobs/lease")

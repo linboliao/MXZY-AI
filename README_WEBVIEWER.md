@@ -1,5 +1,8 @@
 # MXZY-AI 海外 Web Viewer + 国内 GPU Worker
 
+厦门大学校园网服务器与手机热点本机 UI 的实机部署步骤，请直接查看
+[`README_XMU_DEPLOY.md`](README_XMU_DEPLOY.md)。
+
 本项目采用双服务器架构：
 
 - 海外服务器运行 `run_webviewer.py`，负责 UI、用户上传、原始切片存储、任务状态、切片浏览和结果展示。

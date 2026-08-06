@@ -1,1 +1,3 @@
+# Worker control-plane dependency. The GPU inference environment must also
+# provide PyTorch/CUDA, OpenSlide, timm, pandas, GeoPandas, h5py and OpenCV.
 requests>=2.31,<3
