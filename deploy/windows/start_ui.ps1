@@ -1,5 +1,5 @@
 param(
-    [string]$PythonExe = "D:\anaconda3\envs\maixin\python.exe",
+    [string]$PythonExe = "E:\ProgramData\anaconda3\envs\maixin\python.exe",
     [string]$EnvFile = ".env.local-ui.local"
 )
 
