@@ -1,0 +1,28 @@
+{
+    email {$MXZY_ACME_EMAIL}
+}
+
+{$MXZY_PUBLIC_DOMAIN} {
+    encode zstd gzip
+
+    # This is the public login barrier. Generate the password hash with:
+    # caddy hash-password --plaintext 'a-strong-password'
+    basic_auth {
+        {$MXZY_BASIC_AUTH_USER} {$MXZY_BASIC_AUTH_HASH}
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+        -Server
+    }
+
+    # This upstream is the XMU server's Tailscale address, never its campus IP.
+    reverse_proxy {$MXZY_CAMPUS_UPSTREAM} {
+        transport http {
+            dial_timeout 15s
+            response_header_timeout 1h
+        }
+    }
+}

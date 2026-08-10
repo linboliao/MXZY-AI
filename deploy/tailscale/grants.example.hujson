@@ -1,0 +1,16 @@
+// Merge these sections into the existing tailnet policy; do not overwrite
+// unrelated grants, SSH rules, groups, tests, or tag owners.
+{
+  "tagOwners": {
+    "tag:mxzy-vps": ["autogroup:admin"],
+    "tag:mxzy-campus": ["autogroup:admin"]
+  },
+
+  "grants": [
+    {
+      "src": ["tag:mxzy-vps"],
+      "dst": ["tag:mxzy-campus"],
+      "ip": ["tcp:5000"]
+    }
+  ]
+}

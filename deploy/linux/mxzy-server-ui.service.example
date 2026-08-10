@@ -1,0 +1,21 @@
+[Unit]
+Description=MXZY-AI XMU All-in-One Web Viewer and GPU Pipeline
+After=network-online.target tailscaled.service
+Wants=network-online.target tailscaled.service
+
+[Service]
+Type=simple
+User=mxzy
+Group=mxzy
+WorkingDirectory=/opt/MXZY-AI
+Environment=PYTHONUNBUFFERED=1
+Environment=MXZY_PYTHON=/opt/conda/envs/maixin/bin/python
+Environment=MXZY_SERVER_UI_ENV=/etc/mxzy-ai/campus-server-ui.env
+ExecStart=/usr/bin/env bash /opt/MXZY-AI/deploy/linux/start_server_ui.sh
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
