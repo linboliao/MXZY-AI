@@ -51,7 +51,7 @@
           <div id="server-slides" class="server-list">
             <p class="empty-hint">No server slide directories configured</p>
           </div>
-          <button id="server-button" class="primary-button" disabled>Diagnose Selected Slide</button>
+          <button id="server-button" class="primary-button" disabled>Awaiting Precomputation</button>
         </div>
       </section>
 
@@ -89,6 +89,7 @@
         <div class="progress-track"><span id="progress-bar"></span></div>
         <div class="progress-meta">
           <span id="progress-percent">0%</span>
+          <span id="progress-elapsed">Processing time: 0m 00s</span>
           <span>You may leave this page. The task will continue on the server.</span>
         </div>
       </div>
@@ -125,6 +126,11 @@
           <span class="diagnosis-kicker">AI-Assisted Assessment</span>
           <strong id="diagnosis-type">—</strong>
           <span id="diagnosis-confidence">—</span>
+        </div>
+        <div class="result-provenance">
+          <strong id="result-origin">Precomputed Server Result</strong>
+          <span id="result-duration">Processing time: —</span>
+          <span id="result-completed">Completion time: —</span>
         </div>
         <div class="metric-grid">
           <div class="metric">

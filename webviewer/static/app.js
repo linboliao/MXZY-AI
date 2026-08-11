@@ -5,8 +5,10 @@ const state = {
   config: null,
   upload: null,
   selectedServer: null,
+  serverSlides: new Map(),
   activeJob: null,
   pollTimer: null,
+  elapsedTimer: null,
   viewer: null,
 };
 
@@ -20,6 +22,27 @@ function formatBytes(bytes) {
     unit += 1;
   }
   return `${value.toFixed(unit > 1 ? 1 : 0)} ${units[unit]}`;
+}
+
+function formatDuration(seconds) {
+  if (!Number.isFinite(Number(seconds))) return "Not recorded";
+  const total = Math.max(0, Math.round(Number(seconds)));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainder = total % 60;
+  if (hours) return `${hours}h ${String(minutes).padStart(2, "0")}m ${String(remainder).padStart(2, "0")}s`;
+  return `${minutes}m ${String(remainder).padStart(2, "0")}s`;
+}
+
+function serverStatusLabel(slide) {
+  return {
+    ready: `Ready · ${formatDuration(slide.processingSeconds)}`,
+    processing: `Processing · ${slide.progress || 0}%`,
+    queued: "Queued for precomputation",
+    failed: "Precomputation failed",
+    outdated: "Outdated · Recompute required",
+    not_analyzed: "Not analyzed",
+  }[slide.analysisStatus] || slide.analysisStatus;
 }
 
 function toast(message) {
@@ -45,6 +68,7 @@ function showStage(stage) {
 }
 
 function statusLabel(job) {
+  if (job.source_type === "server" && job.source_current === false) return "Outdated";
   return {
     queued: "Pending",
     running: `${job.progress || 0}%`,
@@ -115,6 +139,10 @@ async function createUploadJob() {
 
 async function loadServerSlides() {
   const list = $("#server-slides");
+  state.selectedServer = null;
+  state.serverSlides = new Map();
+  $("#server-button").disabled = true;
+  $("#server-button").textContent = "Awaiting Precomputation";
   list.innerHTML = '<p class="empty-hint">Loading slide library…</p>';
   try {
     const { slides } = await api("/api/server-slides");
@@ -122,35 +150,40 @@ async function loadServerSlides() {
       list.innerHTML = '<p class="empty-hint">No SVS files are available in the slide library</p>';
       return;
     }
+    state.serverSlides = new Map(slides.map((slide) => [slide.id, slide]));
     list.innerHTML = slides.map((slide) => `
-      <button class="server-slide" data-slide="${slide.id}">
+      <button class="server-slide ${slide.analysisStatus}" data-slide="${slide.id}">
         <strong>${escapeHtml(slide.name)}</strong>
-        <span>${escapeHtml(slide.folder)} · ${formatBytes(slide.size)}</span>
+        <span class="server-meta">${escapeHtml(slide.folder)} · ${formatBytes(slide.size)}</span>
+        <span class="server-analysis ${slide.analysisStatus}">${escapeHtml(serverStatusLabel(slide))}</span>
       </button>`).join("");
-    $$(".server-slide").forEach((button) => button.addEventListener("click", () => {
+    $$(".server-slide").forEach((button) => button.addEventListener("click", async () => {
       $$(".server-slide").forEach((item) => item.classList.remove("selected"));
       button.classList.add("selected");
-      state.selectedServer = button.dataset.slide;
-      $("#server-button").disabled = false;
+      state.selectedServer = state.serverSlides.get(button.dataset.slide);
+      const action = $("#server-button");
+      if (state.selectedServer.jobId) {
+        action.disabled = false;
+        action.textContent = state.selectedServer.analysisStatus === "ready"
+          ? "Open Saved Result"
+          : "View Analysis Status";
+        await openJob(state.selectedServer.jobId);
+      } else {
+        action.disabled = true;
+        action.textContent = state.selectedServer.analysisStatus === "outdated"
+          ? "Recompute Required"
+          : "Awaiting Precomputation";
+      }
     }));
   } catch (error) {
     list.innerHTML = `<p class="empty-hint">${escapeHtml(error.message)}</p>`;
   }
 }
 
-async function createServerJob() {
+async function openSelectedServerJob() {
   if (!state.selectedServer) return;
-  try {
-    const { job } = await api("/api/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ serverSlideId: state.selectedServer }),
-    });
-    await displayJob(job);
-    await loadJobs();
-  } catch (error) {
-    toast(error.message);
-  }
+  if (!state.selectedServer.jobId) return;
+  await openJob(state.selectedServer.jobId);
 }
 
 async function openJob(jobId) {
@@ -166,12 +199,15 @@ async function openJob(jobId) {
 async function displayJob(job) {
   state.activeJob = job;
   window.clearTimeout(state.pollTimer);
+  window.clearInterval(state.elapsedTimer);
   if (job.status === "queued" || job.status === "running") {
     showStage("progress");
     $("#progress-title").textContent = job.message || "Processing Diagnosis";
     $("#progress-filename").textContent = job.original_name;
     $("#progress-percent").textContent = `${job.progress || 0}%`;
     $("#progress-bar").style.width = `${job.progress || 0}%`;
+    updateProgressElapsed(job);
+    state.elapsedTimer = window.setInterval(() => updateProgressElapsed(job), 1000);
     showEmptyResult();
     state.pollTimer = window.setTimeout(() => pollJob(job.id), 1800);
     return;
@@ -182,6 +218,17 @@ async function displayJob(job) {
     $("#progress-filename").textContent = job.error || "See server logs for details";
     $("#progress-percent").textContent = "Failed";
     $("#progress-bar").style.width = `${job.progress || 0}%`;
+    $("#progress-elapsed").textContent = `Processing time: ${formatDuration(job.processing_seconds)}`;
+    showEmptyResult();
+    return;
+  }
+  if (job.status === "completed" && job.source_type === "server" && job.source_current === false) {
+    showStage("progress");
+    $("#progress-title").textContent = "Saved Result Outdated";
+    $("#progress-filename").textContent = "The server slide changed after this result was generated";
+    $("#progress-percent").textContent = "Outdated";
+    $("#progress-bar").style.width = "0%";
+    $("#progress-elapsed").textContent = `Previous processing time: ${formatDuration(job.processing_seconds)}`;
     showEmptyResult();
     return;
   }
@@ -197,9 +244,20 @@ async function pollJob(jobId) {
     const { job } = await api(`/api/jobs/${jobId}`);
     await displayJob(job);
     await loadJobs();
+    if (job.source_type === "server" && ["completed", "failed"].includes(job.status)) {
+      await loadServerSlides();
+    }
   } catch (error) {
     toast(error.message);
   }
+}
+
+function updateProgressElapsed(job) {
+  const reference = job.started_at || job.created_at;
+  const started = Date.parse(reference);
+  const seconds = Number.isFinite(started) ? (Date.now() - started) / 1000 : job.processing_seconds;
+  const label = job.started_at ? "Processing time" : "Queued time";
+  $("#progress-elapsed").textContent = `${label}: ${formatDuration(seconds)}`;
 }
 
 function showEmptyResult() {
@@ -220,6 +278,11 @@ function renderResult(job) {
   $("#isup-value").textContent = normalizeMetric(result.ISUP);
   $("#area-value").textContent = formatArea(result.percentage);
   $("#download-overlay").href = `/api/jobs/${job.id}/slide/overlay`;
+  $("#result-origin").textContent = job.source_type === "server" ? "Precomputed Server Result" : "Uploaded Slide Result";
+  $("#result-duration").textContent = `Processing time: ${formatDuration(job.processing_seconds)}`;
+  $("#result-completed").textContent = job.completed_at
+    ? `Completed ${new Date(job.completed_at).toLocaleString("en-US")}`
+    : "Completion time not recorded";
 }
 
 function normalizeMetric(value) {
@@ -492,7 +555,7 @@ function bindEvents() {
   }));
   dropZone.addEventListener("drop", (event) => setUpload(event.dataTransfer.files[0]));
   $("#upload-button").addEventListener("click", createUploadJob);
-  $("#server-button").addEventListener("click", createServerJob);
+  $("#server-button").addEventListener("click", openSelectedServerJob);
   $("#refresh-server").addEventListener("click", loadServerSlides);
   $("#refresh-jobs").addEventListener("click", loadJobs);
   $("#zoom-in").addEventListener("click", () => state.viewer?.zoom(1.5));

@@ -275,6 +275,19 @@ button { color: inherit; }
 .server-slide strong, .server-slide span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .server-slide strong { font-size: 11px; }
 .server-slide span { margin-top: 4px; color: var(--muted); font-size: 10px; }
+.server-slide .server-analysis {
+  display: inline-block;
+  max-width: 100%;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  line-height: 1;
+}
+.server-slide .server-analysis.ready { color: var(--mint); border-color: rgba(97, 226, 178, .3); background: var(--mint-soft); }
+.server-slide .server-analysis.processing,
+.server-slide .server-analysis.queued { color: var(--amber); border-color: rgba(245, 188, 95, .3); }
+.server-slide .server-analysis.failed { color: var(--red); border-color: rgba(255, 109, 122, .3); }
+.server-slide .server-analysis.outdated { color: var(--amber); }
 
 .empty-hint { padding: 8px 12px; color: var(--muted); font-size: 11px; text-align: center; }
 
@@ -452,7 +465,7 @@ button { color: inherit; }
 .progress-state p { max-width: 80%; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .progress-track { width: min(460px, 90%); height: 5px; margin-top: 28px; overflow: hidden; border-radius: 5px; background: rgba(255,255,255,0.08); }
 .progress-track span { display: block; width: 0; height: 100%; background: var(--mint); box-shadow: 0 0 18px var(--mint); transition: width 400ms ease; }
-.progress-meta { width: min(460px, 90%); margin-top: 10px; display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; }
+.progress-meta { width: min(560px, 90%); margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 18px; color: var(--muted); font-size: 10px; }
 
 .viewer-state { width: 100%; height: 100%; }
 
@@ -531,6 +544,17 @@ button { color: inherit; }
 .result-empty p { font-size: 11px; line-height: 1.7; }
 
 .result-content { margin-top: 18px; }
+.result-provenance {
+  margin-top: 10px;
+  padding: 9px 10px;
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.result-provenance strong { color: var(--text); font-size: 10px; }
 .diagnosis-card {
   padding: 18px;
   border: 1px solid rgba(110, 231, 186, 0.24);

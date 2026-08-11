@@ -129,6 +129,37 @@ sudo ufw allow in on tailscale0 to any port 5000 proto tcp
 
 还应在 Tailscale Grants 中只允许海外 VPS 访问厦大服务器的 TCP 5000。仓库中的 `deploy/tailscale/grants.example.hujson` 提供了最小规则：在 Tailscale 管理后台给两台机器分别分配 `tag:mxzy-vps`、`tag:mxzy-campus`，再把示例的 `tagOwners` 和 `grants` 合并到现有 policy。不要覆盖现有规则。还要删除或收紧会对这两台机器产生“全部端口放行”效果的旧规则，否则更宽泛的规则仍会生效。
 
+### 2.5 预计算服务端切片
+
+把管理员维护的 `.svs` 文件放在独立切片库，并在服务配置中加入：
+
+```text
+WEBVIEWER_SERVER_SLIDE_ROOTS=Pathology=/data/slide_library
+```
+
+重启 Web Viewer 后先检查识别及缓存状态：
+
+```bash
+curl -s http://100.64.0.20:5000/api/server-slides | python -m json.tool
+```
+
+首次批量预计算使用管理员命令。建议先预览，再正式加入任务队列：
+
+```bash
+python precompute_server_slides.py --url http://100.64.0.20:5000 --dry-run
+python precompute_server_slides.py --url http://100.64.0.20:5000
+```
+
+脚本仅提交 `not_analyzed` 和 `outdated` 切片，已经完成或正在处理的切片不会重复执行。失败任务需要确认原因后显式重试：
+
+```bash
+python precompute_server_slides.py \
+  --url http://100.64.0.20:5000 \
+  --include-failed
+```
+
+网页中的 `Ready` 切片会直接打开持久化结果；未预计算的切片不会由普通用户启动 GPU 任务。切片的大小或修改时间发生变化后，原结果会标记为 `Outdated`，由管理员重新预计算。
+
 ## 3. 海外 VPS 部署 Caddy 公网入口
 
 先在 VPS 安装并登录 Tailscale，确认下面两项都成功：

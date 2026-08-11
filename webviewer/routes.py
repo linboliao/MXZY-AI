@@ -10,7 +10,7 @@ from pathlib import Path
 from flask import Blueprint, Response, abort, current_app, jsonify, render_template, request, send_file, url_for
 from werkzeug.exceptions import RequestEntityTooLarge
 
-from .jobs import ALLOWED_EXTENSIONS, public_job
+from .jobs import ALLOWED_EXTENSIONS, public_job, server_source_current
 from .slides import SlideUnavailable
 
 
@@ -39,10 +39,12 @@ def _decode_server_path(token):
         abort(400, description="Invalid server-side slide identifier")
 
 
-def _job_or_404(job_id):
+def _job_or_404(job_id, *, require_current_source=False):
     row = current_app.extensions["webviewer_store"].get(job_id)
     if not row:
         abort(404, description="Diagnosis task not found")
+    if require_current_source and not server_source_current(row):
+        abort(409, description="The server slide changed after this result was generated")
     return row
 
 
@@ -262,22 +264,34 @@ def config():
 def server_slides():
     items = []
     roots = current_app.config["WEBVIEWER_SERVER_ROOTS"]
+    manager = current_app.extensions["webviewer_jobs"]
+    server_jobs = current_app.extensions["webviewer_store"].list_server_jobs()
+    jobs_by_source = {}
+    for row in server_jobs:
+        jobs_by_source.setdefault(row["source_path"], []).append(row)
     for root_index, (root_name, root) in enumerate(roots):
         root = Path(root)
         for path in root.rglob("*"):
             if path.is_file() and path.suffix.lower() in ALLOWED_EXTENSIONS:
                 relative = path.relative_to(root).as_posix()
                 stat = path.stat()
-                items.append(
-                    {
-                        "id": _encode_server_path(root_index, relative),
-                        "name": path.name,
-                        "folder": root_name,
-                        "relativePath": relative,
-                        "size": stat.st_size,
-                        "modified": stat.st_mtime,
-                    }
+                resolved_path = str(path.resolve())
+                item = {
+                    "id": _encode_server_path(root_index, relative),
+                    "name": path.name,
+                    "folder": root_name,
+                    "relativePath": relative,
+                    "size": stat.st_size,
+                    "modified": stat.st_mtime,
+                }
+                item.update(
+                    manager.describe_server_slide(
+                        path,
+                        stat,
+                        jobs_by_source.get(resolved_path, []),
+                    )
                 )
+                items.append(item)
                 if len(items) >= 5000:
                     break
     items.sort(key=lambda item: item["modified"], reverse=True)
@@ -293,6 +307,7 @@ def list_jobs():
 @api.post("/api/jobs")
 def create_job():
     manager = current_app.extensions["webviewer_jobs"]
+    reused = False
     try:
         if request.content_type and request.content_type.startswith("multipart/form-data"):
             upload = request.files.get("slide")
@@ -304,10 +319,10 @@ def create_job():
             token = payload.get("serverSlideId")
             if not token:
                 abort(400, description="Select a server-side slide")
-            row = manager.create_from_server_path(_decode_server_path(token))
+            row, reused = manager.create_from_server_path(_decode_server_path(token))
     except ValueError as error:
         abort(400, description=str(error))
-    return jsonify({"job": public_job(row)}), 202
+    return jsonify({"job": public_job(row), "reused": reused}), (200 if reused else 202)
 
 
 @api.get("/api/jobs/<job_id>")
@@ -317,7 +332,7 @@ def get_job(job_id):
 
 @api.get("/api/jobs/<job_id>/slide/metadata")
 def slide_metadata(job_id):
-    row = _job_or_404(job_id)
+    row = _job_or_404(job_id, require_current_source=True)
     try:
         metadata = current_app.extensions["webviewer_slides"].metadata(row["input_path"])
     except SlideUnavailable as error:
@@ -329,7 +344,7 @@ def slide_metadata(job_id):
 
 @api.get("/api/jobs/<job_id>/slide/tiles/<int:level>/<int:col>_<int:row>.jpg")
 def slide_tile(job_id, level, col, row):
-    job = _job_or_404(job_id)
+    job = _job_or_404(job_id, require_current_source=True)
     try:
         tile = current_app.extensions["webviewer_slides"].tile(
             job["input_path"], level, col, row
@@ -343,7 +358,7 @@ def slide_tile(job_id, level, col, row):
 
 @api.get("/api/jobs/<job_id>/slide/overlay")
 def slide_overlay(job_id):
-    job = _job_or_404(job_id)
+    job = _job_or_404(job_id, require_current_source=True)
     output_dir = Path(job["output_path"])
     stem = Path(job["input_path"]).stem
     candidates = (

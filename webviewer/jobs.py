@@ -48,11 +48,51 @@ def utc_now():
     return datetime.now(timezone.utc).isoformat()
 
 
+def processing_seconds(row):
+    """Return wall-clock processing time without including time spent queued."""
+    started_at = row.get("started_at") if isinstance(row, dict) else row["started_at"]
+    if not started_at:
+        return None
+    completed_at = row.get("completed_at") if isinstance(row, dict) else row["completed_at"]
+    try:
+        started = datetime.fromisoformat(started_at)
+        completed = datetime.fromisoformat(completed_at) if completed_at else datetime.now(timezone.utc)
+        elapsed = (completed - started).total_seconds()
+    except (TypeError, ValueError):
+        return None
+    return max(0, round(elapsed, 1))
+
+
+def server_source_current(row):
+    values = row if isinstance(row, dict) else dict(row)
+    if values.get("source_type") != "server" or not values.get("source_path"):
+        return True
+    try:
+        stat = Path(values["source_path"]).stat()
+    except OSError:
+        return False
+    return bool(
+        stat.st_size == values.get("source_size")
+        and stat.st_mtime_ns == values.get("source_mtime_ns")
+    )
+
+
 def public_job(row):
     if not row:
         return None
     result = dict(row)
-    for private_key in ("input_path", "output_path", "worker_id", "lease_expires_at"):
+    result["processing_seconds"] = processing_seconds(result)
+    if result.get("source_type") == "server":
+        result["source_current"] = server_source_current(result)
+    for private_key in (
+        "input_path",
+        "output_path",
+        "worker_id",
+        "lease_expires_at",
+        "source_path",
+        "source_size",
+        "source_mtime_ns",
+    ):
         result.pop(private_key, None)
     if result.get("result_json"):
         try:
@@ -99,6 +139,11 @@ class JobStore:
                     worker_id TEXT,
                     lease_expires_at TEXT,
                     attempts INTEGER NOT NULL DEFAULT 0,
+                    source_path TEXT,
+                    source_size INTEGER,
+                    source_mtime_ns INTEGER,
+                    started_at TEXT,
+                    completed_at TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
@@ -112,10 +157,21 @@ class JobStore:
                 "worker_id": "ALTER TABLE jobs ADD COLUMN worker_id TEXT",
                 "lease_expires_at": "ALTER TABLE jobs ADD COLUMN lease_expires_at TEXT",
                 "attempts": "ALTER TABLE jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0",
+                "source_path": "ALTER TABLE jobs ADD COLUMN source_path TEXT",
+                "source_size": "ALTER TABLE jobs ADD COLUMN source_size INTEGER",
+                "source_mtime_ns": "ALTER TABLE jobs ADD COLUMN source_mtime_ns INTEGER",
+                "started_at": "ALTER TABLE jobs ADD COLUMN started_at TEXT",
+                "completed_at": "ALTER TABLE jobs ADD COLUMN completed_at TEXT",
             }
             for column, statement in migrations.items():
                 if column not in columns:
                     connection.execute(statement)
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_jobs_server_source
+                ON jobs(source_path, source_size, source_mtime_ns, created_at)
+                """
+            )
             for old_message, new_message in LEGACY_JOB_MESSAGES.items():
                 connection.execute(
                     "UPDATE jobs SET message = ? WHERE message = ?",
@@ -143,6 +199,11 @@ class JobStore:
             "worker_id": None,
             "lease_expires_at": None,
             "attempts": 0,
+            "source_path": values.get("source_path"),
+            "source_size": values.get("source_size"),
+            "source_mtime_ns": values.get("source_mtime_ns"),
+            "started_at": None,
+            "completed_at": None,
             "created_at": now,
             "updated_at": now,
         }
@@ -151,10 +212,14 @@ class JobStore:
                 """
                 INSERT INTO jobs (
                     id, status, source_type, original_name, input_path, output_path,
-                    progress, message, error, result_json, created_at, updated_at
+                    progress, message, error, result_json,
+                    source_path, source_size, source_mtime_ns, started_at, completed_at,
+                    created_at, updated_at
                 ) VALUES (
                     :id, :status, :source_type, :original_name, :input_path, :output_path,
-                    :progress, :message, :error, :result_json, :created_at, :updated_at
+                    :progress, :message, :error, :result_json,
+                    :source_path, :source_size, :source_mtime_ns, :started_at, :completed_at,
+                    :created_at, :updated_at
                 )
                 """,
                 row,
@@ -171,8 +236,41 @@ class JobStore:
                 "SELECT * FROM jobs ORDER BY created_at DESC LIMIT ?", (limit,)
             ).fetchall()
 
+    def list_server_jobs(self, source_path=None):
+        with self._lock, self._connect() as connection:
+            if source_path is not None:
+                return connection.execute(
+                    """
+                    SELECT * FROM jobs
+                    WHERE source_type = 'server' AND source_path = ?
+                    ORDER BY created_at DESC
+                    """,
+                    (str(source_path),),
+                ).fetchall()
+            return connection.execute(
+                """
+                SELECT * FROM jobs
+                WHERE source_type = 'server' AND source_path IS NOT NULL
+                ORDER BY created_at DESC
+                """
+            ).fetchall()
+
+    def list_queued(self):
+        with self._lock, self._connect() as connection:
+            return connection.execute(
+                "SELECT * FROM jobs WHERE status = 'queued' ORDER BY created_at"
+            ).fetchall()
+
     def update(self, job_id, **values):
-        allowed = {"status", "progress", "message", "error", "result_json"}
+        allowed = {
+            "status",
+            "progress",
+            "message",
+            "error",
+            "result_json",
+            "started_at",
+            "completed_at",
+        }
         updates = {key: value for key, value in values.items() if key in allowed}
         if not updates:
             return self.get(job_id)
@@ -184,15 +282,16 @@ class JobStore:
         return self.get(job_id)
 
     def mark_interrupted(self):
+        now = utc_now()
         with self._lock, self._connect() as connection:
             connection.execute(
                 """
                 UPDATE jobs
                 SET status = 'failed', error = 'Task interrupted by a service restart',
-                    message = 'Diagnosis interrupted', updated_at = ?
+                    message = 'Diagnosis interrupted', completed_at = ?, updated_at = ?
                 WHERE status = 'running'
                 """,
-                (utc_now(),),
+                (now, now),
             )
 
     def requeue_expired(self):
@@ -202,7 +301,8 @@ class JobStore:
                 """
                 UPDATE jobs
                 SET status = 'queued', worker_id = NULL, lease_expires_at = NULL,
-                    progress = 0, message = 'Waiting for a GPU worker', updated_at = ?
+                    progress = 0, message = 'Waiting for a GPU worker',
+                    started_at = NULL, completed_at = NULL, updated_at = ?
                 WHERE status = 'running' AND lease_expires_at IS NOT NULL
                   AND lease_expires_at <= ?
                 """,
@@ -219,7 +319,8 @@ class JobStore:
                 """
                 UPDATE jobs
                 SET status = 'queued', worker_id = NULL, lease_expires_at = NULL,
-                    progress = 0, message = 'Waiting for a GPU worker', updated_at = ?
+                    progress = 0, message = 'Waiting for a GPU worker',
+                    started_at = NULL, completed_at = NULL, updated_at = ?
                 WHERE status = 'running' AND lease_expires_at IS NOT NULL
                   AND lease_expires_at <= ?
                 """,
@@ -235,10 +336,11 @@ class JobStore:
                 UPDATE jobs
                 SET status = 'running', worker_id = ?, lease_expires_at = ?,
                     attempts = attempts + 1, progress = 2,
-                    message = 'GPU worker accepted the task', updated_at = ?
+                    message = 'GPU worker accepted the task',
+                    started_at = COALESCE(started_at, ?), updated_at = ?
                 WHERE id = ? AND status = 'queued'
                 """,
-                (worker_id, expires_at, now_text, row["id"]),
+                (worker_id, expires_at, now_text, now_text, row["id"]),
             )
             return connection.execute("SELECT * FROM jobs WHERE id = ?", (row["id"],)).fetchone()
 
@@ -268,29 +370,32 @@ class JobStore:
             return cursor.rowcount == 1
 
     def complete_remote(self, job_id, worker_id, result_json):
+        now = utc_now()
         with self._lock, self._connect() as connection:
             cursor = connection.execute(
                 """
                 UPDATE jobs
                 SET status = 'completed', progress = 100, message = 'Diagnosis completed',
                     result_json = ?, error = NULL, worker_id = NULL,
-                    lease_expires_at = NULL, updated_at = ?
+                    lease_expires_at = NULL, completed_at = ?, updated_at = ?
                 WHERE id = ? AND status = 'running' AND worker_id = ?
                 """,
-                (result_json, utc_now(), job_id, worker_id),
+                (result_json, now, now, job_id, worker_id),
             )
             return cursor.rowcount == 1
 
     def fail_remote(self, job_id, worker_id, error):
+        now = utc_now()
         with self._lock, self._connect() as connection:
             cursor = connection.execute(
                 """
                 UPDATE jobs
                 SET status = 'failed', message = 'Diagnosis failed', error = ?,
-                    worker_id = NULL, lease_expires_at = NULL, updated_at = ?
+                    worker_id = NULL, lease_expires_at = NULL,
+                    completed_at = ?, updated_at = ?
                 WHERE id = ? AND status = 'running' AND worker_id = ?
                 """,
-                (str(error)[:4000], utc_now(), job_id, worker_id),
+                (str(error)[:4000], now, now, job_id, worker_id),
             )
             return cursor.rowcount == 1
 
@@ -302,15 +407,15 @@ class JobManager:
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="wsi-diagnosis")
         self.sync_jobs = bool(app.config["WEBVIEWER_SYNC_JOBS"])
         self.execution_backend = app.config["WEBVIEWER_EXECUTION_BACKEND"]
+        self._server_job_lock = threading.RLock()
 
     def recover(self):
         if self.execution_backend == "remote":
             self.store.requeue_expired()
             return
         self.store.mark_interrupted()
-        for row in self.store.list(limit=200):
-            if row["status"] == "queued":
-                self._submit(row["id"])
+        for row in self.store.list_queued():
+            self._submit(row["id"])
 
     def create_from_upload(self, upload):
         original_name = Path(upload.filename or "").name
@@ -335,35 +440,136 @@ class JobManager:
         self._submit(job_id)
         return self.store.get(job_id)
 
+    @staticmethod
+    def _completed_job_available(row):
+        return bool(
+            row
+            and row["status"] == "completed"
+            and row["result_json"]
+            and Path(row["input_path"]).is_file()
+            and Path(row["output_path"]).is_dir()
+        )
+
+    def describe_server_slide(self, source_path, stat, rows):
+        source_path = str(Path(source_path).resolve())
+        exact = [
+            row
+            for row in rows
+            if row["source_path"] == source_path
+            and row["source_size"] == stat.st_size
+            and row["source_mtime_ns"] == stat.st_mtime_ns
+        ]
+        active = next(
+            (row for row in exact if row["status"] in {"queued", "running"}),
+            None,
+        )
+        completed = next(
+            (row for row in exact if self._completed_job_available(row)),
+            None,
+        )
+        failed = next((row for row in exact if row["status"] == "failed"), None)
+        selected = active or completed or failed
+        if selected:
+            status = {
+                "queued": "queued",
+                "running": "processing",
+                "completed": "ready",
+                "failed": "failed",
+            }[selected["status"]]
+            job = public_job(selected)
+            return {
+                "analysisStatus": status,
+                "jobId": selected["id"],
+                "progress": selected["progress"],
+                "message": selected["message"],
+                "processingSeconds": job["processing_seconds"],
+                "completedAt": selected["completed_at"],
+            }
+        if exact:
+            return {
+                "analysisStatus": "outdated",
+                "jobId": None,
+                "progress": 0,
+                "message": "The saved result is unavailable; recomputation is required",
+                "processingSeconds": None,
+                "completedAt": None,
+            }
+        if any(row["source_path"] == source_path for row in rows):
+            return {
+                "analysisStatus": "outdated",
+                "jobId": None,
+                "progress": 0,
+                "message": "The slide changed after its last analysis",
+                "processingSeconds": None,
+                "completedAt": None,
+            }
+        return {
+            "analysisStatus": "not_analyzed",
+            "jobId": None,
+            "progress": 0,
+            "message": "Awaiting administrator precomputation",
+            "processingSeconds": None,
+            "completedAt": None,
+        }
+
     def create_from_server_path(self, source_path):
         source_path = Path(source_path).resolve()
         if source_path.suffix.lower() not in ALLOWED_EXTENSIONS:
             raise ValueError("The current diagnostic pipeline only supports .svs pathology slides")
         if not source_path.is_file():
             raise ValueError("The server-side slide does not exist")
+        stat = source_path.stat()
 
-        job_id, input_dir, output_dir = self._new_job_directories()
-        staged_path = input_dir / f"{secure_filename(source_path.stem) or 'slide'}-{job_id[:8]}.svs"
-        try:
-            os.link(source_path, staged_path)
-        except OSError:
+        with self._server_job_lock:
+            existing_rows = self.store.list_server_jobs(str(source_path))
+            active = next(
+                (
+                    row
+                    for row in existing_rows
+                    if row["source_size"] == stat.st_size
+                    and row["source_mtime_ns"] == stat.st_mtime_ns
+                    and row["status"] in {"queued", "running"}
+                ),
+                None,
+            )
+            completed = next(
+                (
+                    row
+                    for row in existing_rows
+                    if row["source_size"] == stat.st_size
+                    and row["source_mtime_ns"] == stat.st_mtime_ns
+                    and self._completed_job_available(row)
+                ),
+                None,
+            )
+            if active or completed:
+                return active or completed, True
+
+            job_id, input_dir, output_dir = self._new_job_directories()
+            staged_path = input_dir / f"{secure_filename(source_path.stem) or 'slide'}-{job_id[:8]}.svs"
             try:
-                os.symlink(source_path, staged_path)
-            except OSError as error:
-                shutil.rmtree(input_dir.parent, ignore_errors=True)
-                raise ValueError(
-                    "Unable to mount the server-side slide without copying; place the slide library and runtime directory on the same filesystem"
-                ) from error
+                os.link(source_path, staged_path)
+            except OSError:
+                try:
+                    os.symlink(source_path, staged_path)
+                except OSError as error:
+                    shutil.rmtree(input_dir.parent, ignore_errors=True)
+                    raise ValueError(
+                        "Unable to mount the server-side slide without copying; place the slide library and runtime directory on the same filesystem"
+                    ) from error
 
-        self.store.create(
-            id=job_id,
-            source_type="server",
-            original_name=source_path.name,
-            input_path=str(staged_path),
-            output_path=str(output_dir),
-        )
-        self._submit(job_id)
-        return self.store.get(job_id)
+            self.store.create(
+                id=job_id,
+                source_type="server",
+                original_name=source_path.name,
+                input_path=str(staged_path),
+                output_path=str(output_dir),
+                source_path=str(source_path),
+                source_size=stat.st_size,
+                source_mtime_ns=stat.st_mtime_ns,
+            )
+            self._submit(job_id)
+            return self.store.get(job_id), False
 
     def _new_job_directories(self):
         job_id = uuid.uuid4().hex
@@ -387,7 +593,22 @@ class JobManager:
         row = self.store.get(job_id)
         if not row:
             return
-        self.store.update(job_id, status="running", progress=3, message="Initializing diagnosis")
+        if row["source_type"] == "server" and not server_source_current(row):
+            self.store.update(
+                job_id,
+                status="failed",
+                message="Diagnosis failed",
+                error="The server slide changed before precomputation started",
+                completed_at=utc_now(),
+            )
+            return
+        self.store.update(
+            job_id,
+            status="running",
+            progress=3,
+            message="Initializing diagnosis",
+            started_at=utc_now(),
+        )
         try:
             if self.app.config["WEBVIEWER_PIPELINE_MODE"] == "mock":
                 self._run_mock(row)
@@ -399,6 +620,7 @@ class JobManager:
                 status="failed",
                 message="Diagnosis failed",
                 error=str(error),
+                completed_at=utc_now(),
             )
 
     def _run_mock(self, row):
@@ -431,6 +653,7 @@ class JobManager:
             progress=100,
             message="Diagnosis completed (simulation mode)",
             result_json=json.dumps(result, ensure_ascii=False),
+            completed_at=utc_now(),
         )
 
     def _run_real(self, row):
@@ -484,6 +707,7 @@ class JobManager:
             progress=100,
             message="Diagnosis completed",
             result_json=json.dumps(result, ensure_ascii=False),
+            completed_at=utc_now(),
         )
 
     @staticmethod

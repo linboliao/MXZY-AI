@@ -1,6 +1,7 @@
 import io
 import json
 import re
+import sqlite3
 import tempfile
 import unittest
 import zipfile
@@ -87,11 +88,43 @@ class WebViewerApiTests(unittest.TestCase):
     def test_server_slide_token_is_resolved_inside_configured_root(self):
         listing = self.client.get("/api/server-slides").get_json()["slides"]
         self.assertEqual(len(listing), 1)
+        self.assertEqual(listing[0]["analysisStatus"], "not_analyzed")
+        self.assertIsNone(listing[0]["jobId"])
+
         response = self.client.post("/api/jobs", json={"serverSlideId": listing[0]["id"]})
         self.assertEqual(response.status_code, 202)
         job = response.get_json()["job"]
         self.assertEqual(job["source_type"], "server")
         self.assertEqual(job["original_name"], "case-001.svs")
+        self.assertIsNotNone(job["started_at"])
+        self.assertIsNotNone(job["completed_at"])
+        self.assertGreaterEqual(job["processing_seconds"], 0)
+
+        ready = self.client.get("/api/server-slides").get_json()["slides"][0]
+        self.assertEqual(ready["analysisStatus"], "ready")
+        self.assertEqual(ready["jobId"], job["id"])
+
+        reused = self.client.post("/api/jobs", json={"serverSlideId": ready["id"]})
+        self.assertEqual(reused.status_code, 200)
+        self.assertTrue(reused.get_json()["reused"])
+        self.assertEqual(reused.get_json()["job"]["id"], job["id"])
+
+        self.server_slide.write_bytes(b"changed-fake-svs-for-api-test")
+        outdated = self.client.get("/api/server-slides").get_json()["slides"][0]
+        self.assertEqual(outdated["analysisStatus"], "outdated")
+        self.assertIsNone(outdated["jobId"])
+        old_job = self.client.get(f"/api/jobs/{job['id']}").get_json()["job"]
+        self.assertFalse(old_job["source_current"])
+        self.assertEqual(
+            self.client.get(f"/api/jobs/{job['id']}/slide/overlay").status_code,
+            409,
+        )
+
+        replacement = self.client.post(
+            "/api/jobs", json={"serverSlideId": outdated["id"]}
+        )
+        self.assertEqual(replacement.status_code, 202)
+        self.assertNotEqual(replacement.get_json()["job"]["id"], job["id"])
 
     def test_invalid_server_token_is_rejected(self):
         response = self.client.post("/api/jobs", json={"serverSlideId": "invalid"})
@@ -195,6 +228,9 @@ class RemoteWorkerApiTests(unittest.TestCase):
 
         job = self.client.get(f"/api/jobs/{leased['id']}").get_json()["job"]
         self.assertEqual(job["status"], "completed")
+        self.assertIsNotNone(job["started_at"])
+        self.assertIsNotNone(job["completed_at"])
+        self.assertGreaterEqual(job["processing_seconds"], 0)
         self.assertEqual(job["result"]["geojson_files"][0]["type"], "Malignant")
         overlay = self.client.get(f"/api/jobs/{leased['id']}/slide/overlay")
         self.assertEqual(overlay.status_code, 200)
@@ -218,6 +254,48 @@ class RemoteWorkerApiTests(unittest.TestCase):
 
 
 class LegacyJobCopyMigrationTests(unittest.TestCase):
+    def test_existing_database_receives_server_cache_and_timing_columns(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "jobs.sqlite3"
+            with sqlite3.connect(database) as connection:
+                connection.execute(
+                    """
+                    CREATE TABLE jobs (
+                        id TEXT PRIMARY KEY,
+                        status TEXT NOT NULL,
+                        source_type TEXT NOT NULL,
+                        original_name TEXT NOT NULL,
+                        input_path TEXT NOT NULL,
+                        output_path TEXT NOT NULL,
+                        progress INTEGER NOT NULL DEFAULT 0,
+                        message TEXT NOT NULL DEFAULT '',
+                        error TEXT,
+                        result_json TEXT,
+                        worker_id TEXT,
+                        lease_expires_at TEXT,
+                        attempts INTEGER NOT NULL DEFAULT 0,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    )
+                    """
+                )
+
+            store = JobStore(database)
+            with store._connect() as connection:
+                columns = {
+                    row["name"]
+                    for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
+                }
+            self.assertTrue(
+                {
+                    "source_path",
+                    "source_size",
+                    "source_mtime_ns",
+                    "started_at",
+                    "completed_at",
+                }.issubset(columns)
+            )
+
     def test_existing_chinese_job_copy_is_migrated_to_english(self):
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "jobs.sqlite3"
