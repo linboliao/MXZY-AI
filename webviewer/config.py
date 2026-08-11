@@ -21,7 +21,7 @@ def _parse_server_roots(value: str) -> List[Tuple[str, Path]]:
             name, raw_path = item.split("=", 1)
         else:
             raw_path = item
-            name = Path(raw_path).name or f"切片库 {index + 1}"
+            name = Path(raw_path).name or f"Slide Library {index + 1}"
         path = Path(raw_path).expanduser().resolve()
         if path.is_dir():
             roots.append((name.strip(), path))

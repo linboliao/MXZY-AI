@@ -16,6 +16,33 @@ from werkzeug.utils import secure_filename
 
 ALLOWED_EXTENSIONS = {".svs"}
 
+LEGACY_JOB_MESSAGES = {
+    "等待诊断": "Waiting for diagnosis",
+    "诊断中断": "Diagnosis interrupted",
+    "等待国内计算节点": "Waiting for a GPU worker",
+    "国内计算节点已领取任务": "GPU worker accepted the task",
+    "诊断完成": "Diagnosis completed",
+    "诊断失败": "Diagnosis failed",
+    "正在初始化诊断": "Initializing diagnosis",
+    "诊断完成（模拟模式）": "Diagnosis completed (simulation mode)",
+    "正在生成分类切块": "Generating classification patches",
+    "正在提取病理特征": "Extracting pathology features",
+    "正在进行癌症诊断": "Assessing malignancy",
+    "正在评估 Gleason 分级": "Assessing Gleason grade",
+    "正在生成癌区切块": "Generating tumor-region patches",
+    "正在定位疑似癌区": "Locating suspected tumor regions",
+    "正在整理诊断结果": "Preparing diagnostic results",
+    "正在传输病理切片到国内服务器": "Transferring the pathology slide to the GPU worker",
+    "国内计算节点准备下载切片": "GPU worker is preparing to download the slide",
+    "切片传输完成，正在启动推理": "Slide transfer completed; starting inference",
+    "推理完成，正在回传结果": "Inference completed; uploading results",
+    "正在执行医学图像推理": "Running medical image inference",
+}
+
+LEGACY_JOB_ERRORS = {
+    "服务重启导致任务中断": "Task interrupted by a service restart",
+}
+
 
 def utc_now():
     return datetime.now(timezone.utc).isoformat()
@@ -89,6 +116,16 @@ class JobStore:
             for column, statement in migrations.items():
                 if column not in columns:
                     connection.execute(statement)
+            for old_message, new_message in LEGACY_JOB_MESSAGES.items():
+                connection.execute(
+                    "UPDATE jobs SET message = ? WHERE message = ?",
+                    (new_message, old_message),
+                )
+            for old_error, new_error in LEGACY_JOB_ERRORS.items():
+                connection.execute(
+                    "UPDATE jobs SET error = ? WHERE error = ?",
+                    (new_error, old_error),
+                )
 
     def create(self, **values):
         now = utc_now()
@@ -100,7 +137,7 @@ class JobStore:
             "input_path": values["input_path"],
             "output_path": values["output_path"],
             "progress": 0,
-            "message": "等待诊断",
+            "message": "Waiting for diagnosis",
             "error": None,
             "result_json": None,
             "worker_id": None,
@@ -151,8 +188,8 @@ class JobStore:
             connection.execute(
                 """
                 UPDATE jobs
-                SET status = 'failed', error = '服务重启导致任务中断',
-                    message = '诊断中断', updated_at = ?
+                SET status = 'failed', error = 'Task interrupted by a service restart',
+                    message = 'Diagnosis interrupted', updated_at = ?
                 WHERE status = 'running'
                 """,
                 (utc_now(),),
@@ -165,7 +202,7 @@ class JobStore:
                 """
                 UPDATE jobs
                 SET status = 'queued', worker_id = NULL, lease_expires_at = NULL,
-                    progress = 0, message = '等待国内计算节点', updated_at = ?
+                    progress = 0, message = 'Waiting for a GPU worker', updated_at = ?
                 WHERE status = 'running' AND lease_expires_at IS NOT NULL
                   AND lease_expires_at <= ?
                 """,
@@ -182,7 +219,7 @@ class JobStore:
                 """
                 UPDATE jobs
                 SET status = 'queued', worker_id = NULL, lease_expires_at = NULL,
-                    progress = 0, message = '等待国内计算节点', updated_at = ?
+                    progress = 0, message = 'Waiting for a GPU worker', updated_at = ?
                 WHERE status = 'running' AND lease_expires_at IS NOT NULL
                   AND lease_expires_at <= ?
                 """,
@@ -198,7 +235,7 @@ class JobStore:
                 UPDATE jobs
                 SET status = 'running', worker_id = ?, lease_expires_at = ?,
                     attempts = attempts + 1, progress = 2,
-                    message = '国内计算节点已领取任务', updated_at = ?
+                    message = 'GPU worker accepted the task', updated_at = ?
                 WHERE id = ? AND status = 'queued'
                 """,
                 (worker_id, expires_at, now_text, row["id"]),
@@ -235,7 +272,7 @@ class JobStore:
             cursor = connection.execute(
                 """
                 UPDATE jobs
-                SET status = 'completed', progress = 100, message = '诊断完成',
+                SET status = 'completed', progress = 100, message = 'Diagnosis completed',
                     result_json = ?, error = NULL, worker_id = NULL,
                     lease_expires_at = NULL, updated_at = ?
                 WHERE id = ? AND status = 'running' AND worker_id = ?
@@ -249,7 +286,7 @@ class JobStore:
             cursor = connection.execute(
                 """
                 UPDATE jobs
-                SET status = 'failed', message = '诊断失败', error = ?,
+                SET status = 'failed', message = 'Diagnosis failed', error = ?,
                     worker_id = NULL, lease_expires_at = NULL, updated_at = ?
                 WHERE id = ? AND status = 'running' AND worker_id = ?
                 """,
@@ -279,14 +316,14 @@ class JobManager:
         original_name = Path(upload.filename or "").name
         extension = Path(original_name).suffix.lower()
         if extension not in ALLOWED_EXTENSIONS:
-            raise ValueError("当前诊断流水线仅支持 .svs 病理切片")
+            raise ValueError("The current diagnostic pipeline only supports .svs pathology slides")
 
         job_id, input_dir, output_dir = self._new_job_directories()
         safe_stem = secure_filename(Path(original_name).stem) or "slide"
         input_path = input_dir / f"{safe_stem}-{job_id[:8]}{extension}"
         upload.save(input_path)
         if input_path.stat().st_size == 0:
-            raise ValueError("上传文件为空")
+            raise ValueError("The uploaded file is empty")
 
         self.store.create(
             id=job_id,
@@ -301,9 +338,9 @@ class JobManager:
     def create_from_server_path(self, source_path):
         source_path = Path(source_path).resolve()
         if source_path.suffix.lower() not in ALLOWED_EXTENSIONS:
-            raise ValueError("当前诊断流水线仅支持 .svs 病理切片")
+            raise ValueError("The current diagnostic pipeline only supports .svs pathology slides")
         if not source_path.is_file():
-            raise ValueError("服务端切片不存在")
+            raise ValueError("The server-side slide does not exist")
 
         job_id, input_dir, output_dir = self._new_job_directories()
         staged_path = input_dir / f"{secure_filename(source_path.stem) or 'slide'}-{job_id[:8]}.svs"
@@ -315,7 +352,7 @@ class JobManager:
             except OSError as error:
                 shutil.rmtree(input_dir.parent, ignore_errors=True)
                 raise ValueError(
-                    "无法无拷贝挂载该服务端切片；请将切片库与运行目录置于同一磁盘"
+                    "Unable to mount the server-side slide without copying; place the slide library and runtime directory on the same filesystem"
                 ) from error
 
         self.store.create(
@@ -339,7 +376,7 @@ class JobManager:
 
     def _submit(self, job_id):
         if self.execution_backend == "remote":
-            self.store.update(job_id, message="等待国内计算节点")
+            self.store.update(job_id, message="Waiting for a GPU worker")
             return
         if self.sync_jobs:
             self._run(job_id)
@@ -350,7 +387,7 @@ class JobManager:
         row = self.store.get(job_id)
         if not row:
             return
-        self.store.update(job_id, status="running", progress=3, message="正在初始化诊断")
+        self.store.update(job_id, status="running", progress=3, message="Initializing diagnosis")
         try:
             if self.app.config["WEBVIEWER_PIPELINE_MODE"] == "mock":
                 self._run_mock(row)
@@ -360,7 +397,7 @@ class JobManager:
             self.store.update(
                 job_id,
                 status="failed",
-                message="诊断失败",
+                message="Diagnosis failed",
                 error=str(error),
             )
 
@@ -392,7 +429,7 @@ class JobManager:
             row["id"],
             status="completed",
             progress=100,
-            message="诊断完成（模拟模式）",
+            message="Diagnosis completed (simulation mode)",
             result_json=json.dumps(result, ensure_ascii=False),
         )
 
@@ -437,28 +474,28 @@ class JobManager:
         return_code = process.wait()
         result_path = output_dir / "exist_cancer.json"
         if return_code != 0:
-            raise RuntimeError(f"诊断进程异常退出（代码 {return_code}），详见 pipeline.log")
+            raise RuntimeError(f"The diagnostic process exited with code {return_code}; see pipeline.log for details")
         if not result_path.is_file():
-            raise RuntimeError("诊断未生成 exist_cancer.json，详见 pipeline.log")
+            raise RuntimeError("The diagnostic process did not generate exist_cancer.json; see pipeline.log for details")
         result = json.loads(result_path.read_text(encoding="utf-8"))
         self.store.update(
             row["id"],
             status="completed",
             progress=100,
-            message="诊断完成",
+            message="Diagnosis completed",
             result_json=json.dumps(result, ensure_ascii=False),
         )
 
     @staticmethod
     def _progress_from_line(line):
         checkpoints = (
-            ("create_patch_cls", 12, "正在生成分类切块"),
-            ("WSI特征提取", 30, "正在提取病理特征"),
-            ("癌症诊断", 52, "正在进行癌症诊断"),
-            ("Gleason", 64, "正在评估 Gleason 分级"),
-            ("yolo patching", 72, "正在生成癌区切块"),
-            ("run_yolo", 82, "正在定位疑似癌区"),
-            ("总执行时间", 95, "正在整理诊断结果"),
+            ("create_patch_cls", 12, "Generating classification patches"),
+            ("WSI特征提取", 30, "Extracting pathology features"),
+            ("癌症诊断", 52, "Assessing malignancy"),
+            ("Gleason", 64, "Assessing Gleason grade"),
+            ("yolo patching", 72, "Generating tumor-region patches"),
+            ("run_yolo", 82, "Locating suspected tumor regions"),
+            ("总执行时间", 95, "Preparing diagnostic results"),
         )
         for marker, progress, message in checkpoints:
             if marker in line:

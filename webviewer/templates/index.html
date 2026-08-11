@@ -1,25 +1,25 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>MXZY-AI 前列腺病理诊断</title>
-  <meta name="description" content="前列腺病理切片辅助诊断与癌区可视化工作台">
+  <title>MXZY-AI Prostate Pathology Diagnosis</title>
+  <meta name="description" content="AI-assisted prostate pathology diagnosis and tumor-region visualization workspace">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/" aria-label="返回工作台首页">
+    <a class="brand" href="/" aria-label="Return to workspace home">
       <span class="brand-mark" aria-hidden="true"><span></span></span>
       <span>
         <strong>MXZY-AI</strong>
-        <small>前列腺病理智能诊断</small>
+        <small>AI-Powered Prostate Pathology</small>
       </span>
     </a>
     <div class="topbar-status">
       <span class="status-dot"></span>
-      <span>诊断服务在线</span>
+      <span>Diagnostic Service Online</span>
       <span class="divider"></span>
       <span id="clock">--:--</span>
     </div>
@@ -28,37 +28,37 @@
   <main class="workspace">
     <aside class="sidebar">
       <section class="new-case">
-        <div class="section-label">新建诊断</div>
-        <div class="source-tabs" role="tablist" aria-label="切片来源">
-          <button class="source-tab active" data-tab="upload" role="tab" aria-selected="true">网页上传</button>
-          <button class="source-tab" data-tab="server" role="tab" aria-selected="false">服务端切片</button>
+        <div class="section-label">New Diagnosis</div>
+        <div class="source-tabs" role="tablist" aria-label="Slide source">
+          <button class="source-tab active" data-tab="upload" role="tab" aria-selected="true">Upload</button>
+          <button class="source-tab" data-tab="server" role="tab" aria-selected="false">Server Slides</button>
         </div>
 
         <div id="upload-panel" class="source-panel active">
           <label class="drop-zone" id="drop-zone">
             <input id="slide-input" type="file" accept=".svs" hidden>
             <span class="drop-icon" aria-hidden="true">＋</span>
-            <strong>选择或拖入病理切片</strong>
-            <span>当前诊断链路支持 SVS</span>
-            <span class="file-limit" id="file-limit">单文件最大 20 GB</span>
+            <strong>Select or drop a pathology slide</strong>
+            <span>SVS files are currently supported</span>
+            <span class="file-limit" id="file-limit">Maximum file size: 20 GB</span>
           </label>
           <div id="selected-upload" class="selected-file hidden"></div>
-          <button id="upload-button" class="primary-button" disabled>开始诊断</button>
+          <button id="upload-button" class="primary-button" disabled>Start Diagnosis</button>
         </div>
 
         <div id="server-panel" class="source-panel">
-          <button id="refresh-server" class="secondary-button">刷新切片库</button>
+          <button id="refresh-server" class="secondary-button">Refresh Slide Library</button>
           <div id="server-slides" class="server-list">
-            <p class="empty-hint">尚未配置服务端切片目录</p>
+            <p class="empty-hint">No server slide directories configured</p>
           </div>
-          <button id="server-button" class="primary-button" disabled>诊断选中切片</button>
+          <button id="server-button" class="primary-button" disabled>Diagnose Selected Slide</button>
         </div>
       </section>
 
       <section class="recent-section">
         <div class="section-heading">
-          <span class="section-label">诊断记录</span>
-          <button id="refresh-jobs" class="icon-button" aria-label="刷新诊断记录">↻</button>
+          <span class="section-label">Diagnosis History</span>
+          <button id="refresh-jobs" class="icon-button" aria-label="Refresh diagnosis history">↻</button>
         </div>
         <div id="job-list" class="job-list"></div>
       </section>
@@ -73,23 +73,23 @@
           <span class="focus-ring"></span>
         </div>
         <span class="eyebrow">COMPUTATIONAL PATHOLOGY</span>
-        <h1>从全视野切片到<br>可解释的辅助诊断</h1>
-        <p>上传 SVS 切片或从服务端切片库选择病例。系统将完成癌症判别、Gleason / ISUP 分级，并在原始切片上标注疑似癌区。</p>
+        <h1>From Whole-Slide Images to<br>Interpretable AI-Assisted Diagnosis</h1>
+        <p>Upload an SVS slide or select a case from the server library. The system assesses malignancy, assigns Gleason and ISUP grades, and highlights suspected tumor regions on the original slide.</p>
         <div class="capability-row">
-          <span>全视野无级缩放</span>
-          <span>癌区空间标注</span>
-          <span>诊断结果归档</span>
+          <span>Seamless Whole-Slide Zoom</span>
+          <span>Spatial Tumor Annotation</span>
+          <span>Archived Diagnostic Results</span>
         </div>
       </div>
 
       <div id="progress-state" class="progress-state hidden">
         <span class="eyebrow">AI DIAGNOSIS IN PROGRESS</span>
-        <h2 id="progress-title">正在初始化诊断</h2>
+        <h2 id="progress-title">Initializing Diagnosis</h2>
         <p id="progress-filename"></p>
         <div class="progress-track"><span id="progress-bar"></span></div>
         <div class="progress-meta">
           <span id="progress-percent">0%</span>
-          <span>可离开页面，任务会在服务端继续运行</span>
+          <span>You may leave this page. The task will continue on the server.</span>
         </div>
       </div>
 
@@ -100,29 +100,29 @@
             <span id="viewer-dimensions">—</span>
           </div>
           <div class="toolbar-actions">
-            <button id="zoom-out" aria-label="缩小">−</button>
-            <button id="zoom-reset">适应窗口</button>
-            <button id="zoom-in" aria-label="放大">＋</button>
-            <button id="toggle-overlay" class="active">癌区标注</button>
+            <button id="zoom-out" aria-label="Zoom out">−</button>
+            <button id="zoom-reset">Fit to Window</button>
+            <button id="zoom-in" aria-label="Zoom in">＋</button>
+            <button id="toggle-overlay" class="active">Tumor Overlay</button>
           </div>
         </div>
         <div id="slide-viewport" class="slide-viewport">
           <canvas id="slide-canvas"></canvas>
           <div class="zoom-readout" id="zoom-readout">1.0×</div>
-          <div class="viewer-help">滚轮缩放 · 拖动平移 · 双击放大</div>
+          <div class="viewer-help">Scroll to zoom · Drag to pan · Double-click to zoom in</div>
         </div>
       </div>
     </section>
 
     <aside class="result-panel">
-      <div class="section-label">诊断结论</div>
+      <div class="section-label">Diagnostic Summary</div>
       <div id="result-empty" class="result-empty">
         <span class="result-placeholder">AI</span>
-        <p>完成诊断后，这里将显示癌症判别、分级与病灶负荷。</p>
+        <p>Malignancy assessment, grading, and suspected lesion burden will appear here after processing.</p>
       </div>
       <div id="result-content" class="result-content hidden">
         <div id="diagnosis-card" class="diagnosis-card">
-          <span class="diagnosis-kicker">辅助诊断</span>
+          <span class="diagnosis-kicker">AI-Assisted Assessment</span>
           <strong id="diagnosis-type">—</strong>
           <span id="diagnosis-confidence">—</span>
         </div>
@@ -132,23 +132,23 @@
             <strong id="gleason-value">—</strong>
           </div>
           <div class="metric">
-            <span>ISUP 分组</span>
+            <span>ISUP Grade Group</span>
             <strong id="isup-value">—</strong>
           </div>
           <div class="metric metric-wide">
-            <span>疑似癌区负荷</span>
+            <span>Suspected Tumor Burden</span>
             <strong id="area-value">—</strong>
           </div>
         </div>
         <div class="legend">
-          <div><span class="legend-swatch malignant"></span>疑似恶性区域</div>
-          <div><span class="legend-swatch boundary"></span>模型边界</div>
+          <div><span class="legend-swatch malignant"></span>Suspected Malignant Region</div>
+          <div><span class="legend-swatch boundary"></span>Model Boundary</div>
         </div>
-        <a id="download-overlay" class="secondary-button download-button" download>下载癌区 GeoJSON</a>
+        <a id="download-overlay" class="secondary-button download-button" download>Download Tumor GeoJSON</a>
       </div>
       <div class="clinical-note">
-        <strong>重要提示</strong>
-        <p>本系统输出仅用于科研和辅助阅片，不能替代执业病理医师的诊断结论。</p>
+        <strong>Important Notice</strong>
+        <p>This system is intended for research and decision support only. It does not replace a diagnosis by a licensed pathologist.</p>
       </div>
     </aside>
   </main>

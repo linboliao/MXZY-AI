@@ -36,13 +36,13 @@ def _decode_server_path(token):
             raise ValueError
         return candidate
     except (ValueError, TypeError, IndexError, UnicodeDecodeError, binascii.Error, json.JSONDecodeError):
-        abort(400, description="无效的服务端切片标识")
+        abort(400, description="Invalid server-side slide identifier")
 
 
 def _job_or_404(job_id):
     row = current_app.extensions["webviewer_store"].get(job_id)
     if not row:
-        abort(404, description="诊断任务不存在")
+        abort(404, description="Diagnosis task not found")
     return row
 
 
@@ -51,9 +51,9 @@ def _authenticate_worker():
     authorization = request.headers.get("Authorization", "")
     supplied = authorization[7:] if authorization.startswith("Bearer ") else ""
     if not expected:
-        abort(503, description="海外网关未配置 Worker Token")
+        abort(503, description="The gateway does not have a worker token configured")
     if not supplied or not hmac.compare_digest(supplied, expected):
-        abort(401, description="Worker 身份验证失败")
+        abort(401, description="Worker authentication failed")
 
 
 def _worker_id_from_request():
@@ -62,14 +62,14 @@ def _worker_id_from_request():
         payload = request.get_json(silent=True) or {}
         worker_id = str(payload.get("workerId", "")).strip()
     if not worker_id or len(worker_id) > 200:
-        abort(400, description="缺少有效的 Worker ID")
+        abort(400, description="A valid worker ID is required")
     return worker_id
 
 
 def _leased_job(job_id, worker_id):
     row = _job_or_404(job_id)
     if row["status"] != "running" or row["worker_id"] != worker_id:
-        abort(409, description="任务租约不存在、已过期或不属于当前 Worker")
+        abort(409, description="The task lease is missing, expired, or assigned to another worker")
     return row
 
 
@@ -78,39 +78,39 @@ def _extract_result_bundle(bundle, output_dir, max_bytes):
         archive_path = Path(temporary) / "result.zip"
         bundle.save(archive_path)
         if archive_path.stat().st_size > max_bytes:
-            raise ValueError("结果压缩包超过服务器限制")
+            raise ValueError("The result archive exceeds the server limit")
 
         extract_dir = Path(temporary) / "extracted"
         extract_dir.mkdir()
         with zipfile.ZipFile(archive_path) as archive:
             members = archive.infolist()
             if len(members) > 10000:
-                raise ValueError("结果压缩包文件数量异常")
+                raise ValueError("The result archive contains too many files")
             if sum(member.file_size for member in members) > max_bytes * 4:
-                raise ValueError("结果压缩包解压后超过服务器限制")
+                raise ValueError("The extracted result archive exceeds the server limit")
             for member in members:
                 member_path = Path(member.filename.replace("\\", "/"))
                 if member_path.is_absolute() or ".." in member_path.parts:
-                    raise ValueError("结果压缩包包含不安全路径")
+                    raise ValueError("The result archive contains an unsafe path")
                 (extract_dir / member_path).resolve().relative_to(extract_dir.resolve())
             archive.extractall(extract_dir)
 
         result_path = extract_dir / "exist_cancer.json"
         if not result_path.is_file():
-            raise ValueError("结果压缩包缺少 exist_cancer.json")
+            raise ValueError("The result archive is missing exist_cancer.json")
         try:
             result = json.loads(result_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
-            raise ValueError(f"exist_cancer.json 无效: {error}") from error
+            raise ValueError(f"Invalid exist_cancer.json: {error}") from error
         entries = result.get("geojson_files")
         if not isinstance(entries, list) or not entries:
-            raise ValueError("exist_cancer.json 缺少 geojson_files")
+            raise ValueError("exist_cancer.json is missing geojson_files")
         for entry in entries:
             filename = Path(str(entry.get("filename", "")))
             if filename.name != str(filename) or filename.suffix.lower() != ".geojson":
-                raise ValueError("结果中包含无效 GeoJSON 文件名")
+                raise ValueError("The result contains an invalid GeoJSON filename")
             if not (extract_dir / filename).is_file():
-                raise ValueError(f"结果压缩包缺少 {filename.name}")
+                raise ValueError(f"The result archive is missing {filename.name}")
 
         output_dir.mkdir(parents=True, exist_ok=True)
         for child in extract_dir.iterdir():
@@ -204,7 +204,7 @@ def worker_heartbeat(job_id):
         message=payload.get("message"),
     )
     if not updated:
-        abort(409, description="任务租约不存在、已过期或不属于当前 Worker")
+        abort(409, description="The task lease is missing, expired, or assigned to another worker")
     return jsonify({"status": "ok"})
 
 
@@ -215,10 +215,10 @@ def worker_complete(job_id):
     row = _leased_job(job_id, worker_id)
     max_bytes = current_app.config["WEBVIEWER_RESULT_BUNDLE_MAX_BYTES"]
     if request.content_length and request.content_length > max_bytes:
-        abort(413, description="结果压缩包超过服务器限制")
+        abort(413, description="The result archive exceeds the server limit")
     bundle = request.files.get("bundle")
     if not bundle or not bundle.filename:
-        abort(400, description="缺少结果压缩包")
+        abort(400, description="A result archive is required")
     try:
         result = _extract_result_bundle(bundle, Path(row["output_path"]), max_bytes)
     except (OSError, ValueError, zipfile.BadZipFile) as error:
@@ -227,7 +227,7 @@ def worker_complete(job_id):
         job_id, worker_id, json.dumps(result, ensure_ascii=False)
     )
     if not completed:
-        abort(409, description="任务租约已失效")
+        abort(409, description="The task lease is no longer valid")
     return jsonify({"status": "completed"})
 
 
@@ -236,12 +236,12 @@ def worker_fail(job_id):
     _authenticate_worker()
     worker_id = _worker_id_from_request()
     payload = request.get_json(silent=True) or {}
-    error = str(payload.get("error") or "国内计算节点未提供错误信息")
+    error = str(payload.get("error") or "The GPU worker did not provide error details")
     failed = current_app.extensions["webviewer_store"].fail_remote(
         job_id, worker_id, error
     )
     if not failed:
-        abort(409, description="任务租约已失效")
+        abort(409, description="The task lease is no longer valid")
     return jsonify({"status": "failed"})
 
 
@@ -297,13 +297,13 @@ def create_job():
         if request.content_type and request.content_type.startswith("multipart/form-data"):
             upload = request.files.get("slide")
             if not upload or not upload.filename:
-                abort(400, description="请选择要上传的 .svs 切片")
+                abort(400, description="Select an .svs slide to upload")
             row = manager.create_from_upload(upload)
         else:
             payload = request.get_json(silent=True) or {}
             token = payload.get("serverSlideId")
             if not token:
-                abort(400, description="请选择服务端切片")
+                abort(400, description="Select a server-side slide")
             row = manager.create_from_server_path(_decode_server_path(token))
     except ValueError as error:
         abort(400, description=str(error))
@@ -359,8 +359,8 @@ def slide_overlay(job_id):
 @api.errorhandler(RequestEntityTooLarge)
 def upload_too_large(_error):
     if request.path.startswith("/api/worker/"):
-        return jsonify({"error": "结果压缩包超过服务器配置的大小限制"}), 413
-    return jsonify({"error": "上传文件超过服务器配置的大小限制"}), 413
+        return jsonify({"error": "The result archive exceeds the configured server size limit"}), 413
+    return jsonify({"error": "The uploaded file exceeds the configured server size limit"}), 413
 
 
 @api.app_errorhandler(400)

@@ -49,9 +49,9 @@ class RemoteWorkerConfig:
         gateway_url = os.getenv("WEBVIEWER_GATEWAY_URL", "").strip().rstrip("/")
         token = os.getenv("WEBVIEWER_WORKER_TOKEN", "").strip()
         if not gateway_url:
-            raise RuntimeError("缺少 WEBVIEWER_GATEWAY_URL")
+            raise RuntimeError("WEBVIEWER_GATEWAY_URL is required")
         if not token:
-            raise RuntimeError("缺少 WEBVIEWER_WORKER_TOKEN")
+            raise RuntimeError("WEBVIEWER_WORKER_TOKEN is required")
         return cls(
             gateway_url=gateway_url,
             token=token,
@@ -134,10 +134,10 @@ class GatewayClient:
                 downloaded += len(chunk)
                 if time.monotonic() - last_heartbeat >= self.config.heartbeat_seconds:
                     ratio = downloaded / max(1, int(job["size"]))
-                    self.heartbeat(job, min(18, 3 + int(ratio * 15)), "正在传输病理切片到国内服务器")
+                    self.heartbeat(job, min(18, 3 + int(ratio * 15)), "Transferring the pathology slide to the GPU worker")
                     last_heartbeat = time.monotonic()
         if downloaded != int(job["size"]):
-            raise RuntimeError(f"切片下载不完整: {downloaded}/{job['size']} bytes")
+            raise RuntimeError(f"Incomplete slide download: {downloaded}/{job['size']} bytes")
         partial.replace(destination)
 
     def complete(self, job, bundle_path):
@@ -187,16 +187,16 @@ class RemoteWorker:
         output_dir.mkdir(parents=True, exist_ok=True)
         filename = Path(job["storedFilename"])
         if filename.name != str(filename) or filename.suffix.lower() != ".svs":
-            raise RuntimeError("海外网关返回了无效切片文件名")
+            raise RuntimeError("The gateway returned an invalid slide filename")
         slide_path = input_dir / filename
         try:
-            self.client.heartbeat(job, 3, "国内计算节点准备下载切片")
+            self.client.heartbeat(job, 3, "GPU worker is preparing to download the slide")
             if not slide_path.is_file() or slide_path.stat().st_size != int(job["size"]):
                 self.client.download_slide(job, slide_path)
-            self.client.heartbeat(job, 20, "切片传输完成，正在启动推理")
+            self.client.heartbeat(job, 20, "Slide transfer completed; starting inference")
             self._run_pipeline(job, input_dir, output_dir)
             bundle_path = self._build_result_bundle(output_dir, job_dir / "result.zip")
-            self.client.heartbeat(job, 97, "推理完成，正在回传结果")
+            self.client.heartbeat(job, 97, "Inference completed; uploading results")
             self.client.complete(job, bundle_path)
         except Exception as error:
             try:
@@ -240,7 +240,7 @@ class RemoteWorker:
                 lines.put(None)
 
         threading.Thread(target=read_output, daemon=True).start()
-        progress, message = 20, "正在执行医学图像推理"
+        progress, message = 20, "Running medical image inference"
         last_heartbeat = 0.0
         reader_finished = False
         log_path = output_dir / "pipeline.log"
@@ -263,20 +263,20 @@ class RemoteWorker:
                     last_heartbeat = time.monotonic()
         return_code = process.wait()
         if return_code != 0:
-            raise RuntimeError(f"推理进程异常退出（代码 {return_code}），详见 pipeline.log")
+            raise RuntimeError(f"The inference process exited with code {return_code}; see pipeline.log for details")
         if not (output_dir / "exist_cancer.json").is_file():
-            raise RuntimeError("推理未生成 exist_cancer.json")
+            raise RuntimeError("Inference did not generate exist_cancer.json")
 
     @staticmethod
     def _progress_from_line(line):
         checkpoints = (
-            ("WSI生成", 25, "正在生成分类切块"),
-            ("WSI特征提取", 35, "正在提取病理特征"),
-            ("癌症诊断", 55, "正在进行癌症诊断"),
-            ("Gleason", 65, "正在评估 Gleason 分级"),
-            ("yolo patching", 73, "正在生成癌区切块"),
-            ("Infer Patches", 82, "正在定位疑似癌区"),
-            ("总执行时间", 95, "正在整理诊断结果"),
+            ("WSI生成", 25, "Generating classification patches"),
+            ("WSI特征提取", 35, "Extracting pathology features"),
+            ("癌症诊断", 55, "Assessing malignancy"),
+            ("Gleason", 65, "Assessing Gleason grade"),
+            ("yolo patching", 73, "Generating tumor-region patches"),
+            ("Infer Patches", 82, "Locating suspected tumor regions"),
+            ("总执行时间", 95, "Preparing diagnostic results"),
         )
         for marker, progress, message in checkpoints:
             if marker in line:
@@ -287,12 +287,12 @@ class RemoteWorker:
     def _build_result_bundle(output_dir, bundle_path):
         result_path = output_dir / "exist_cancer.json"
         if not result_path.is_file():
-            raise RuntimeError("缺少 exist_cancer.json")
+            raise RuntimeError("Missing exist_cancer.json")
         result = json.loads(result_path.read_text(encoding="utf-8"))
         for entry in result.get("geojson_files", []):
             filename = Path(str(entry.get("filename", "")))
             if filename.name != str(filename) or not (output_dir / filename).is_file():
-                raise RuntimeError(f"缺少结果 GeoJSON: {filename}")
+                raise RuntimeError(f"Missing result GeoJSON: {filename}")
 
         files = set()
         for pattern in RESULT_PATTERNS:

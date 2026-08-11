@@ -23,7 +23,7 @@ class SlideCache:
             from openslide.deepzoom import DeepZoomGenerator
         except ImportError as error:
             raise SlideUnavailable(
-                "未安装 OpenSlide Python 依赖，暂时无法浏览 WSI 切片"
+                "The OpenSlide Python dependency is not installed; WSI viewing is unavailable"
             ) from error
         try:
             slide = openslide.OpenSlide(str(path))
@@ -41,7 +41,7 @@ class SlideCache:
                 "lock": threading.RLock(),
             }
         except Exception as error:
-            raise SlideUnavailable(f"无法打开病理切片：{error}") from error
+            raise SlideUnavailable(f"Unable to open the pathology slide: {error}") from error
 
     def get(self, path):
         key = str(path)
@@ -94,10 +94,10 @@ class SlideCache:
         with item["lock"]:
             deepzoom = item["deepzoom"]
             if level < 0 or level >= deepzoom.level_count:
-                raise ValueError("无效的缩放层级")
+                raise ValueError("Invalid zoom level")
             tiles_x, tiles_y = deepzoom.level_tiles[level]
             if col < 0 or row < 0 or col >= tiles_x or row >= tiles_y:
-                raise ValueError("无效的切片坐标")
+                raise ValueError("Invalid slide coordinates")
             image = deepzoom.get_tile(level, (col, row)).convert("RGB")
             buffer = io.BytesIO()
             image.save(buffer, "JPEG", quality=quality, optimize=True)

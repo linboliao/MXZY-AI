@@ -1,11 +1,17 @@
 import io
 import json
+import re
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 
 from webviewer import create_app
+from webviewer.jobs import JobStore
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+HAN_TEXT = re.compile(r"[\u3400-\u9fff]")
 
 
 class WebViewerApiTests(unittest.TestCase):
@@ -38,6 +44,18 @@ class WebViewerApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["status"], "ok")
 
+    def test_frontend_copy_is_english(self):
+        index = self.client.get("/")
+        self.assertEqual(index.status_code, 200)
+        html = index.get_data(as_text=True)
+        javascript = (PROJECT_ROOT / "webviewer/static/app.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('<html lang="en">', html)
+        self.assertIn("Prostate Pathology Diagnosis", html)
+        self.assertIsNone(HAN_TEXT.search(html))
+        self.assertIsNone(HAN_TEXT.search(javascript))
+
     def test_upload_creates_completed_mock_job(self):
         response = self.client.post(
             "/api/jobs",
@@ -47,6 +65,7 @@ class WebViewerApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 202)
         job = response.get_json()["job"]
         self.assertEqual(job["status"], "completed")
+        self.assertEqual(job["message"], "Diagnosis completed (simulation mode)")
         self.assertEqual(job["result"]["geojson_files"][0]["type"], "Benign")
         self.assertNotIn("input_path", job)
         self.assertNotIn("output_path", job)
@@ -63,6 +82,7 @@ class WebViewerApiTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("SVS", response.get_json()["error"].upper())
+        self.assertIn("only supports", response.get_json()["error"])
 
     def test_server_slide_token_is_resolved_inside_configured_root(self):
         listing = self.client.get("/api/server-slides").get_json()["slides"]
@@ -140,7 +160,7 @@ class RemoteWorkerApiTests(unittest.TestCase):
         heartbeat = self.client.post(
             leased["heartbeatUrl"],
             headers=self.headers,
-            json={"progress": 44, "message": "国内推理中"},
+            json={"progress": 44, "message": "Running inference on the GPU worker"},
         )
         self.assertEqual(heartbeat.status_code, 200)
 
@@ -195,6 +215,31 @@ class RemoteWorkerApiTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertFalse((self.root / "outside.txt").exists())
+
+
+class LegacyJobCopyMigrationTests(unittest.TestCase):
+    def test_existing_chinese_job_copy_is_migrated_to_english(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "jobs.sqlite3"
+            store = JobStore(database)
+            row = store.create(
+                id="legacy-job",
+                source_type="upload",
+                original_name="legacy.svs",
+                input_path=str(Path(directory) / "legacy.svs"),
+                output_path=str(Path(directory) / "output"),
+            )
+            store.update(
+                row["id"],
+                message="正在提取病理特征",
+                error="服务重启导致任务中断",
+            )
+
+            migrated = JobStore(database).get(row["id"])
+            self.assertEqual(migrated["message"], "Extracting pathology features")
+            self.assertEqual(
+                migrated["error"], "Task interrupted by a service restart"
+            )
 
 
 if __name__ == "__main__":

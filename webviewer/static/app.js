@@ -34,7 +34,7 @@ async function api(url, options = {}) {
   const response = await fetch(url, options);
   let payload = {};
   try { payload = await response.json(); } catch (_) { /* no body */ }
-  if (!response.ok) throw new Error(payload.error || `请求失败（${response.status}）`);
+  if (!response.ok) throw new Error(payload.error || `Request failed (${response.status})`);
   return payload;
 }
 
@@ -46,10 +46,10 @@ function showStage(stage) {
 
 function statusLabel(job) {
   return {
-    queued: "等待中",
+    queued: "Pending",
     running: `${job.progress || 0}%`,
-    completed: job.result?.geojson_files?.[0]?.type === "Malignant" ? "疑似恶性" : "已完成",
-    failed: "失败",
+    completed: job.result?.geojson_files?.[0]?.type === "Malignant" ? "Suspected Malignancy" : "Completed",
+    failed: "Failed",
   }[job.status] || job.status;
 }
 
@@ -58,7 +58,7 @@ async function loadJobs() {
     const { jobs } = await api("/api/jobs");
     const list = $("#job-list");
     if (!jobs.length) {
-      list.innerHTML = '<p class="empty-hint">暂无诊断记录</p>';
+      list.innerHTML = '<p class="empty-hint">No diagnosis history</p>';
       return;
     }
     list.innerHTML = jobs.map((job) => {
@@ -67,7 +67,7 @@ async function loadJobs() {
         <button class="job-item ${state.activeJob?.id === job.id ? "active" : ""}" data-job="${job.id}">
           <span class="job-indicator ${job.status}"></span>
           <span class="job-copy"><strong>${escapeHtml(job.original_name)}</strong><span>${statusLabel(job)}</span></span>
-          <span class="job-time">${date.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" })}</span>
+          <span class="job-time">${date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" })}</span>
         </button>`;
     }).join("");
     $$(".job-item").forEach((button) => button.addEventListener("click", () => openJob(button.dataset.job)));
@@ -85,7 +85,7 @@ function escapeHtml(value) {
 function setUpload(file) {
   if (!file) return;
   if (!file.name.toLowerCase().endsWith(".svs")) {
-    toast("当前诊断链路仅支持 SVS 文件");
+    toast("Only SVS files are supported");
     return;
   }
   state.upload = file;
@@ -98,7 +98,7 @@ async function createUploadJob() {
   if (!state.upload) return;
   const button = $("#upload-button");
   button.disabled = true;
-  button.textContent = "正在上传…";
+  button.textContent = "Uploading…";
   const body = new FormData();
   body.append("slide", state.upload);
   try {
@@ -109,17 +109,17 @@ async function createUploadJob() {
     toast(error.message);
   } finally {
     button.disabled = false;
-    button.textContent = "开始诊断";
+    button.textContent = "Start Diagnosis";
   }
 }
 
 async function loadServerSlides() {
   const list = $("#server-slides");
-  list.innerHTML = '<p class="empty-hint">正在读取切片库…</p>';
+  list.innerHTML = '<p class="empty-hint">Loading slide library…</p>';
   try {
     const { slides } = await api("/api/server-slides");
     if (!slides.length) {
-      list.innerHTML = '<p class="empty-hint">切片库中没有可用的 SVS 文件</p>';
+      list.innerHTML = '<p class="empty-hint">No SVS files are available in the slide library</p>';
       return;
     }
     list.innerHTML = slides.map((slide) => `
@@ -168,7 +168,7 @@ async function displayJob(job) {
   window.clearTimeout(state.pollTimer);
   if (job.status === "queued" || job.status === "running") {
     showStage("progress");
-    $("#progress-title").textContent = job.message || "正在诊断";
+    $("#progress-title").textContent = job.message || "Processing Diagnosis";
     $("#progress-filename").textContent = job.original_name;
     $("#progress-percent").textContent = `${job.progress || 0}%`;
     $("#progress-bar").style.width = `${job.progress || 0}%`;
@@ -178,9 +178,9 @@ async function displayJob(job) {
   }
   if (job.status === "failed") {
     showStage("progress");
-    $("#progress-title").textContent = "诊断未完成";
-    $("#progress-filename").textContent = job.error || "请查看服务端日志";
-    $("#progress-percent").textContent = "失败";
+    $("#progress-title").textContent = "Diagnosis Incomplete";
+    $("#progress-filename").textContent = job.error || "See server logs for details";
+    $("#progress-percent").textContent = "Failed";
     $("#progress-bar").style.width = `${job.progress || 0}%`;
     showEmptyResult();
     return;
@@ -213,8 +213,8 @@ function renderResult(job) {
   $("#result-empty").classList.add("hidden");
   $("#result-content").classList.remove("hidden");
   $("#diagnosis-card").classList.toggle("malignant", malignant);
-  $("#diagnosis-type").textContent = malignant ? "疑似前列腺癌" : "未见明确癌证据";
-  const confidence = result.conf === "strong" ? "模型一致性：高" : result.conf === "weak" ? "模型一致性：中等" : "模型一致性：未提供";
+  $("#diagnosis-type").textContent = malignant ? "Suspected Prostate Cancer" : "No Clear Evidence of Malignancy";
+  const confidence = result.conf === "strong" ? "Model agreement: High" : result.conf === "weak" ? "Model agreement: Moderate" : "Model agreement: Not available";
   $("#diagnosis-confidence").textContent = confidence;
   $("#gleason-value").textContent = normalizeMetric(result.Gleason);
   $("#isup-value").textContent = normalizeMetric(result.ISUP);
@@ -506,10 +506,10 @@ function bindEvents() {
 
 async function initialize() {
   bindEvents();
-  setInterval(() => { $("#clock").textContent = new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }); }, 1000);
+  setInterval(() => { $("#clock").textContent = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }); }, 1000);
   try {
     state.config = await api("/api/config");
-    $("#file-limit").textContent = `单文件最大 ${formatBytes(state.config.maxUploadBytes)}`;
+    $("#file-limit").textContent = `Maximum file size: ${formatBytes(state.config.maxUploadBytes)}`;
   } catch (error) {
     toast(error.message);
   }
