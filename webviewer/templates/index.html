@@ -6,12 +6,15 @@
   <meta name="color-scheme" content="dark">
   <title>MXZY-AI Prostate Pathology Diagnosis</title>
   <meta name="description" content="AI-assisted prostate pathology diagnosis and tumor-region visualization workspace">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="/" aria-label="Return to workspace home">
-      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <span class="brand-logo" aria-hidden="true">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="">
+      </span>
       <span>
         <strong>MXZY-AI</strong>
         <small>AI-Powered Prostate Pathology</small>
