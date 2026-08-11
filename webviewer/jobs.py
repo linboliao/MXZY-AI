@@ -1,5 +1,6 @@
 ﻿import json
 import os
+import queue
 import shutil
 import sqlite3
 import subprocess
@@ -42,6 +43,42 @@ LEGACY_JOB_MESSAGES = {
 LEGACY_JOB_ERRORS = {
     "服务重启导致任务中断": "Task interrupted by a service restart",
 }
+
+
+def discover_gpu_devices(selection="auto", *, environment=None, command_runner=None):
+    """Resolve GPU identifiers without importing torch or creating a CUDA context."""
+    selection = (selection or "auto").strip()
+    lowered = selection.lower()
+    if lowered in {"none", "off", "cpu", "-1"}:
+        return []
+    if lowered != "auto":
+        return list(dict.fromkeys(item.strip() for item in selection.split(",") if item.strip()))
+
+    environment = os.environ if environment is None else environment
+    visible = environment.get("CUDA_VISIBLE_DEVICES")
+    if visible is not None and visible.strip().lower() not in {"", "all"}:
+        if visible.strip() == "-1":
+            return []
+        return list(dict.fromkeys(item.strip() for item in visible.split(",") if item.strip()))
+    if visible is not None and not visible.strip():
+        return []
+
+    runner = command_runner or subprocess.run
+    try:
+        result = runner(
+            ["nvidia-smi", "--query-gpu=index", "--format=csv,noheader,nounits"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if result.returncode != 0:
+        return []
+    return list(
+        dict.fromkeys(line.strip() for line in result.stdout.splitlines() if line.strip())
+    )
 
 
 def utc_now():
@@ -404,10 +441,35 @@ class JobManager:
     def __init__(self, app, store):
         self.app = app
         self.store = store
-        self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="wsi-diagnosis")
         self.sync_jobs = bool(app.config["WEBVIEWER_SYNC_JOBS"])
         self.execution_backend = app.config["WEBVIEWER_EXECUTION_BACKEND"]
+        self.pipeline_mode = app.config["WEBVIEWER_PIPELINE_MODE"]
+        if self.execution_backend == "local" and self.pipeline_mode == "real":
+            devices = discover_gpu_devices(app.config["WEBVIEWER_GPU_DEVICES"])
+        else:
+            devices = []
+        configured_limit = int(app.config["WEBVIEWER_MAX_PARALLEL_JOBS"])
+        if configured_limit > 0:
+            devices = devices[:configured_limit]
+        self.gpu_devices = devices
+        self.max_parallel_jobs = max(1, len(self.gpu_devices))
+        self.executor = ThreadPoolExecutor(
+            max_workers=self.max_parallel_jobs,
+            thread_name_prefix="wsi-diagnosis",
+        )
+        self._gpu_slots = queue.Queue()
+        for device in self.gpu_devices:
+            self._gpu_slots.put(device)
         self._server_job_lock = threading.RLock()
+        if self.execution_backend == "local" and self.pipeline_mode == "real":
+            if self.gpu_devices:
+                print(
+                    "[OK] GPU scheduler: "
+                    f"devices={','.join(self.gpu_devices)}, "
+                    f"parallel_jobs={self.max_parallel_jobs}"
+                )
+            else:
+                print("[WARN] GPU scheduler found no visible GPU; using one unpinned job slot")
 
     def recover(self):
         if self.execution_backend == "remote":
@@ -589,6 +651,15 @@ class JobManager:
         else:
             self.executor.submit(self._run, job_id)
 
+    @contextmanager
+    def _gpu_slot(self):
+        device = self._gpu_slots.get() if self.gpu_devices else None
+        try:
+            yield device
+        finally:
+            if device is not None:
+                self._gpu_slots.put(device)
+
     def _run(self, job_id):
         row = self.store.get(job_id)
         if not row:
@@ -602,26 +673,32 @@ class JobManager:
                 completed_at=utc_now(),
             )
             return
-        self.store.update(
-            job_id,
-            status="running",
-            progress=3,
-            message="Initializing diagnosis",
-            started_at=utc_now(),
-        )
-        try:
-            if self.app.config["WEBVIEWER_PIPELINE_MODE"] == "mock":
-                self._run_mock(row)
-            else:
-                self._run_real(row)
-        except Exception as error:
+        with self._gpu_slot() as gpu_device:
+            message = (
+                f"Initializing diagnosis on GPU {gpu_device}"
+                if gpu_device is not None
+                else "Initializing diagnosis"
+            )
             self.store.update(
                 job_id,
-                status="failed",
-                message="Diagnosis failed",
-                error=str(error),
-                completed_at=utc_now(),
+                status="running",
+                progress=3,
+                message=message,
+                started_at=utc_now(),
             )
+            try:
+                if self.pipeline_mode == "mock":
+                    self._run_mock(row)
+                else:
+                    self._run_real(row, gpu_device=gpu_device)
+            except Exception as error:
+                self.store.update(
+                    job_id,
+                    status="failed",
+                    message="Diagnosis failed",
+                    error=str(error),
+                    completed_at=utc_now(),
+                )
 
     def _run_mock(self, row):
         output_dir = Path(row["output_path"])
@@ -656,7 +733,7 @@ class JobManager:
             completed_at=utc_now(),
         )
 
-    def _run_real(self, row):
+    def _run_real(self, row, *, gpu_device=None):
         project_root = Path(self.app.config["WEBVIEWER_PROJECT_ROOT"])
         input_dir = Path(row["input_path"]).parent
         output_dir = Path(row["output_path"])
@@ -676,6 +753,8 @@ class JobManager:
         )
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
+        if gpu_device is not None:
+            env["CUDA_VISIBLE_DEVICES"] = str(gpu_device)
         process = subprocess.Popen(
             command,
             cwd=project_root,

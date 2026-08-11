@@ -11,6 +11,7 @@ from waitress import create_server
 from tools import model_assets
 from webviewer import create_app
 from webviewer.envfile import load_env_file
+from webviewer.jobs import discover_gpu_devices
 from webviewer.preflight import required_pipeline_assets
 
 
@@ -84,6 +85,8 @@ class DeploymentAssetTests(unittest.TestCase):
         )
         self.assertIn("WEBVIEWER_EXECUTION_BACKEND=local", content)
         self.assertIn("WEBVIEWER_PIPELINE_MODE=real", content)
+        self.assertIn("WEBVIEWER_GPU_DEVICES=auto", content)
+        self.assertIn("WEBVIEWER_MAX_PARALLEL_JOBS=0", content)
         self.assertIn("WEBVIEWER_HOST=100.64.0.20", content)
         self.assertNotIn("WEBVIEWER_GATEWAY_URL=", content)
 
@@ -119,6 +122,59 @@ class DeploymentAssetTests(unittest.TestCase):
         self.assertIn('"dst": ["tag:mxzy-campus"]', policy)
         self.assertIn('"ip": ["tcp:5000"]', policy)
         self.assertNotIn('"ip": ["*"]', policy)
+
+
+class GpuSchedulerTests(unittest.TestCase):
+    def test_explicit_and_visible_gpu_selection(self):
+        self.assertEqual(discover_gpu_devices("2,0,2"), ["2", "0"])
+        self.assertEqual(
+            discover_gpu_devices("auto", environment={"CUDA_VISIBLE_DEVICES": "3,1"}),
+            ["3", "1"],
+        )
+        self.assertEqual(
+            discover_gpu_devices("auto", environment={"CUDA_VISIBLE_DEVICES": ""}),
+            [],
+        )
+
+    def test_auto_detection_uses_nvidia_smi(self):
+        class Result:
+            returncode = 0
+            stdout = "0\n1\n"
+
+        self.assertEqual(
+            discover_gpu_devices(
+                "auto",
+                environment={},
+                command_runner=lambda *args, **kwargs: Result(),
+            ),
+            ["0", "1"],
+        )
+
+    def test_local_manager_caps_parallel_jobs(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "webviewer.jobs.discover_gpu_devices", return_value=["0", "1", "2"]
+        ):
+            app = create_app(
+                {
+                    "TESTING": True,
+                    "WEBVIEWER_DATA_DIR": directory,
+                    "WEBVIEWER_EXECUTION_BACKEND": "local",
+                    "WEBVIEWER_PIPELINE_MODE": "real",
+                    "WEBVIEWER_GPU_DEVICES": "auto",
+                    "WEBVIEWER_MAX_PARALLEL_JOBS": 2,
+                }
+            )
+            manager = app.extensions["webviewer_jobs"]
+            try:
+                self.assertEqual(manager.gpu_devices, ["0", "1"])
+                self.assertEqual(manager.max_parallel_jobs, 2)
+                with manager._gpu_slot() as first, manager._gpu_slot() as second:
+                    self.assertEqual({first, second}, {"0", "1"})
+                health = app.test_client().get("/api/health").get_json()
+                self.assertEqual(health["gpuDevices"], ["0", "1"])
+                self.assertEqual(health["maxParallelJobs"], 2)
+            finally:
+                manager.executor.shutdown(wait=True)
 
 
 class WaitressDeploymentTests(unittest.TestCase):

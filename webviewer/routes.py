@@ -131,11 +131,14 @@ def index():
 
 @api.get("/api/health")
 def health():
+    manager = current_app.extensions["webviewer_jobs"]
     return jsonify(
         {
             "status": "ok",
             "service": "MXZY-AI Web Viewer",
             "executionBackend": current_app.config["WEBVIEWER_EXECUTION_BACKEND"],
+            "gpuDevices": manager.gpu_devices,
+            "maxParallelJobs": manager.max_parallel_jobs,
         }
     )
 
@@ -249,6 +252,7 @@ def worker_fail(job_id):
 
 @api.get("/api/config")
 def config():
+    manager = current_app.extensions["webviewer_jobs"]
     return jsonify(
         {
             "maxUploadBytes": current_app.config["WEBVIEWER_MAX_UPLOAD_BYTES"],
@@ -256,6 +260,8 @@ def config():
             "hasServerSlides": bool(current_app.config["WEBVIEWER_SERVER_ROOTS"]),
             "pipelineMode": current_app.config["WEBVIEWER_PIPELINE_MODE"],
             "executionBackend": current_app.config["WEBVIEWER_EXECUTION_BACKEND"],
+            "gpuDevices": manager.gpu_devices,
+            "maxParallelJobs": manager.max_parallel_jobs,
         }
     )
 

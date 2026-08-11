@@ -36,6 +36,8 @@ class WebViewerConfig:
     pipeline_mode: str
     pipeline_model: str
     pipeline_normal: bool
+    gpu_devices: str
+    max_parallel_jobs: int
     execution_backend: str
     worker_token: str
     worker_lease_seconds: int
@@ -57,6 +59,8 @@ class WebViewerConfig:
             pipeline_mode=os.getenv("WEBVIEWER_PIPELINE_MODE", "real").strip().lower(),
             pipeline_model=os.getenv("WEBVIEWER_PIPELINE_MODEL", "h-optimus-1"),
             pipeline_normal=_parse_bool(os.getenv("WEBVIEWER_PIPELINE_NORMAL"), True),
+            gpu_devices=os.getenv("WEBVIEWER_GPU_DEVICES", "auto").strip(),
+            max_parallel_jobs=max(0, int(os.getenv("WEBVIEWER_MAX_PARALLEL_JOBS", "0"))),
             execution_backend=os.getenv("WEBVIEWER_EXECUTION_BACKEND", "local").strip().lower(),
             worker_token=os.getenv("WEBVIEWER_WORKER_TOKEN", ""),
             worker_lease_seconds=max(60, int(os.getenv("WEBVIEWER_WORKER_LEASE_SECONDS", "300"))),
@@ -76,6 +80,8 @@ class WebViewerConfig:
             "WEBVIEWER_PIPELINE_MODE": self.pipeline_mode,
             "WEBVIEWER_PIPELINE_MODEL": self.pipeline_model,
             "WEBVIEWER_PIPELINE_NORMAL": self.pipeline_normal,
+            "WEBVIEWER_GPU_DEVICES": self.gpu_devices,
+            "WEBVIEWER_MAX_PARALLEL_JOBS": self.max_parallel_jobs,
             "WEBVIEWER_EXECUTION_BACKEND": self.execution_backend,
             "WEBVIEWER_WORKER_TOKEN": self.worker_token,
             "WEBVIEWER_WORKER_LEASE_SECONDS": self.worker_lease_seconds,

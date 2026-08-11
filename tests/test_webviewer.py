@@ -6,6 +6,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 from webviewer import create_app
 from webviewer.jobs import JobStore
@@ -129,6 +130,33 @@ class WebViewerApiTests(unittest.TestCase):
     def test_invalid_server_token_is_rejected(self):
         response = self.client.post("/api/jobs", json={"serverSlideId": "invalid"})
         self.assertEqual(response.status_code, 400)
+
+    def test_pipeline_subprocess_is_pinned_to_assigned_gpu(self):
+        input_dir = self.root / "gpu-pin-input"
+        output_dir = self.root / "gpu-pin-output"
+        input_dir.mkdir()
+        output_dir.mkdir()
+        input_path = input_dir / "gpu-pin.svs"
+        input_path.write_bytes(b"fake-slide")
+        result = {"geojson_files": []}
+        (output_dir / "exist_cancer.json").write_text(
+            json.dumps(result), encoding="utf-8"
+        )
+        store = self.app.extensions["webviewer_store"]
+        row = store.create(
+            id="gpu-pin-job",
+            source_type="upload",
+            original_name="gpu-pin.svs",
+            input_path=str(input_path),
+            output_path=str(output_dir),
+        )
+
+        with patch("webviewer.jobs.subprocess.Popen") as popen:
+            popen.return_value.stdout = io.StringIO("")
+            popen.return_value.wait.return_value = 0
+            self.app.extensions["webviewer_jobs"]._run_real(row, gpu_device="7")
+
+        self.assertEqual(popen.call_args.kwargs["env"]["CUDA_VISIBLE_DEVICES"], "7")
 
 
 class RemoteWorkerApiTests(unittest.TestCase):

@@ -63,6 +63,31 @@ def select_background_level(level_dimensions, patch_size, sample_size):
     return level, preview_size
 
 
+def is_white_region(img, box, pixel_threshold=250, ratio_threshold=1.0):
+    """Return True when the pixels inside a detection box are (near) white.
+
+    ``pixel_threshold`` is applied to every RGB channel.  ``ratio_threshold``
+    defaults to 1.0 so a region is removed only when all of its pixels are
+    white; it can be lowered slightly for JPEG/scanner noise.
+    """
+    image = np.asarray(img.convert("RGB") if isinstance(img, Image.Image) else img)
+    if image.ndim != 3 or image.shape[2] < 3:
+        return False
+
+    height, width = image.shape[:2]
+    x1, y1, x2, y2 = box
+    left = max(0, min(width, int(np.floor(x1))))
+    top = max(0, min(height, int(np.floor(y1))))
+    right = max(0, min(width, int(np.ceil(x2))))
+    bottom = max(0, min(height, int(np.ceil(y2))))
+    if right <= left or bottom <= top:
+        return False
+
+    roi = image[top:bottom, left:right, :3]
+    white_pixels = np.all(roi >= pixel_threshold, axis=2)
+    return float(white_pixels.mean()) >= ratio_threshold
+
+
 class Result:
     def __init__(self, opt):
         self.slide_dir = opt.slide_dir if opt.slide_dir else os.path.join(opt.data_root, f'slides')
@@ -86,6 +111,8 @@ class Result:
         self.slide_cache_mb = max(0, int(getattr(opt, 'slide_cache_mb', 512)))
         self.progress_position = max(0, int(getattr(opt, 'progress_position', 0)))
         self.worker_label = str(getattr(opt, 'worker_label', ''))
+        self.white_pixel_threshold = int(getattr(opt, 'white_pixel_threshold', 240))
+        self.white_ratio_threshold = float(getattr(opt, 'white_ratio_threshold', 0.85))
 
         self.output_dir = opt.output_dir if opt.output_dir else os.path.join(opt.data_root, f'results/')
         os.makedirs(os.path.dirname(self.output_dir), exist_ok=True)
@@ -102,6 +129,23 @@ class Result:
     def process(self, data):
         # data: img, slide
         raise NotImplementedError()
+
+    def filter_white_malignant_regions(self, img, coords, labels, confs):
+        """Remove malignant detections whose complete box interior is white."""
+        keep = [
+            i for i, (coord, label) in enumerate(zip(coords, labels))
+            if label != 'Malignant' or not is_white_region(
+                img,
+                coord,
+                pixel_threshold=self.white_pixel_threshold,
+                ratio_threshold=self.white_ratio_threshold,
+            )
+        ]
+        return (
+            [coords[i] for i in keep],
+            [labels[i] for i in keep],
+            [confs[i] for i in keep],
+        )
 
     def open_slide(self, slide):
         base, ext = os.path.splitext(slide)
@@ -244,7 +288,7 @@ class GeoResults(Result):
                 coords = [coords[i] for i in range(len(coords)) if i not in remove_list]
                 labels = [labels[i] for i in range(len(labels)) if i not in remove_list]
                 confs = [confs[i] for i in range(len(confs)) if i not in remove_list]
-        return coords, labels, confs
+        return self.filter_white_malignant_regions(img, coords, labels, confs)
 
     def multi_infer(self, img, gpu):
         # n-1个模型的推理结果
@@ -330,7 +374,7 @@ class GeoResults(Result):
                     labels = [labels[i] for i in range(len(labels)) if i not in idxs]
                     confs = [confs[i] for i in range(len(confs)) if i not in idxs]
 
-        return coords, labels, confs
+        return self.filter_white_malignant_regions(img, coords, labels, confs)
 
     def process(self, slide):
         base, ext = os.path.splitext(slide)
@@ -538,6 +582,10 @@ parser.add_argument('--read_workers', type=int, default=1, help='patch inference
 parser.add_argument('--cpu_threads', type=int, default=2, help='PyTorch/OpenCV CPU threads')
 parser.add_argument('--background_sample_size', type=int, default=256, help='thumbnail size for background detection')
 parser.add_argument('--slide_cache_mb', type=int, default=128, help='OpenSlide cache size in MB')
+parser.add_argument('--white_pixel_threshold', type=int, default=250,
+                    help='minimum value of every RGB channel for a pixel to count as white')
+parser.add_argument('--white_ratio_threshold', type=float, default=1.0,
+                    help='white-pixel ratio required to remove a malignant detection')
 
 
 def main(args):

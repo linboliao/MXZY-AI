@@ -44,6 +44,7 @@ def main():
     base_url = args.url.rstrip("/")
 
     try:
+        configuration = request_json(f"{base_url}/api/config")
         slides = request_json(f"{base_url}/api/server-slides").get("slides", [])
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as error:
         raise SystemExit(f"Unable to read the server slide library: {error}") from error
@@ -52,9 +53,22 @@ def main():
     if args.include_failed:
         eligible_statuses.add("failed")
     eligible = [slide for slide in slides if slide.get("analysisStatus") in eligible_statuses]
+    ready_or_active = sum(
+        slide.get("analysisStatus") in {"ready", "queued", "processing"}
+        for slide in slides
+    )
+    failed_not_retried = sum(
+        slide.get("analysisStatus") == "failed" for slide in slides
+    ) if not args.include_failed else 0
 
+    gpu_devices = configuration.get("gpuDevices", [])
+    parallel_jobs = configuration.get("maxParallelJobs", 1)
+    print(f"GPU devices: {','.join(map(str, gpu_devices)) if gpu_devices else 'not detected'}")
+    print(f"Parallel diagnosis jobs: {parallel_jobs}")
     print(f"Server slides: {len(slides)}")
-    print(f"Already ready or active: {len(slides) - len(eligible)}")
+    print(f"Already ready or active: {ready_or_active}")
+    if failed_not_retried:
+        print(f"Failed and not retried: {failed_not_retried}")
     print(f"Eligible for precomputation: {len(eligible)}")
 
     failures = 0

@@ -135,7 +135,20 @@ sudo ufw allow in on tailscale0 to any port 5000 proto tcp
 
 ```text
 WEBVIEWER_SERVER_SLIDE_ROOTS=Pathology=/data/slide_library
+WEBVIEWER_GPU_DEVICES=auto
+WEBVIEWER_MAX_PARALLEL_JOBS=0
 ```
+
+`WEBVIEWER_GPU_DEVICES=auto` 会通过当前进程的 `CUDA_VISIBLE_DEVICES` 或 `nvidia-smi` 检测可见显卡。默认每张显卡同时运行一个切片任务，并为每个流水线子进程设置独立的 `CUDA_VISIBLE_DEVICES`。例如检测到 `0,1` 时并行数为 2；只有一张 RTX 3080 Ti 时并行数仍为 1。
+
+共享服务器不建议自动使用全部显卡，可以显式限制：
+
+```text
+WEBVIEWER_GPU_DEVICES=1,3
+WEBVIEWER_MAX_PARALLEL_JOBS=1
+```
+
+上面的配置只允许服务使用 GPU 1 和 3，但最多同时处理一个任务。修改后需要重启 Web Viewer。不要在同一张 GPU 上并发运行多个完整流水线；特征提取和诊断模型可能耗尽显存，多个并发任务还会显著增加 CPU、内存和磁盘 I/O 压力。
 
 重启 Web Viewer 后先检查识别及缓存状态：
 
@@ -148,6 +161,12 @@ curl -s http://100.64.0.20:5000/api/server-slides | python -m json.tool
 ```bash
 python precompute_server_slides.py --url http://100.64.0.20:5000 --dry-run
 python precompute_server_slides.py --url http://100.64.0.20:5000
+```
+
+脚本启动时会打印服务端检测到的 GPU 和并行任务数。也可以直接检查：
+
+```bash
+curl -s http://100.64.0.20:5000/api/health | python -m json.tool
 ```
 
 脚本仅提交 `not_analyzed` 和 `outdated` 切片，已经完成或正在处理的切片不会重复执行。失败任务需要确认原因后显式重试：
