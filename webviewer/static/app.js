@@ -294,8 +294,8 @@ function formatArea(value) {
   if (value === undefined || value === null || value === "N/A") return "—";
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return value;
-  if (numeric >= 0 && numeric <= 1) return `${(numeric * 100).toFixed(1)}%`;
-  return `${numeric.toFixed(1)}%`;
+  if (numeric >= 0 && numeric <= 1) return `${(numeric * 100).toFixed(0)}%`;
+  return `${numeric.toFixed(0)}%`;
 }
 
 async function loadViewer(job) {
