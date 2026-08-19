@@ -292,9 +292,11 @@ function normalizeMetric(value) {
 
 function formatArea(value) {
   if (value === undefined || value === null || value === "N/A") return "—";
-  const numeric = Number(value);
+  const text = String(value).trim();
+  const hasPercentSuffix = text.endsWith("%");
+  const numeric = Number(hasPercentSuffix ? text.slice(0, -1) : text);
   if (!Number.isFinite(numeric)) return value;
-  if (numeric >= 0 && numeric <= 1) return `${(numeric * 100).toFixed(0)}%`;
+  if (!hasPercentSuffix && numeric >= 0 && numeric <= 1) return `${(numeric * 100).toFixed(0)}%`;
   return `${numeric.toFixed(0)}%`;
 }
 
