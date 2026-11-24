@@ -28,7 +28,7 @@ warnings.filterwarnings("ignore")
 import argparse
 
 #
-# sys.path.insert(0, r'/data2/lbliao/Code/aslide/')
+# sys.path.insert(0, r'/NAS2/Data1/lbliao/Code-195/aslide/')
 # from aslide import Aslide
 
 Image.MAX_IMAGE_PIXELS = None
@@ -578,8 +578,8 @@ parser.add_argument('--slide', type=str, default='')
 parser.add_argument('--slide_list', type=list, default=[])
 parser.add_argument('--output_dir', type=str, default='/NAS145/liaolinbo/Data/MXB/301/yolo2')
 parser.add_argument('--show_level', type=int, default=0)
-parser.add_argument('--read_workers', type=int, default=1, help='patch inference threads per slide')
-parser.add_argument('--cpu_threads', type=int, default=2, help='PyTorch/OpenCV CPU threads')
+parser.add_argument('--read_workers', type=int, default=4, help='patch inference threads per slide')
+parser.add_argument('--cpu_threads', type=int, default=4, help='PyTorch/OpenCV CPU threads')
 parser.add_argument('--background_sample_size', type=int, default=256, help='thumbnail size for background detection')
 parser.add_argument('--slide_cache_mb', type=int, default=128, help='OpenSlide cache size in MB')
 parser.add_argument('--white_pixel_threshold', type=int, default=250,

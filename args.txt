@@ -1,6 +1,6 @@
-source: D:\Workspace\Work\前列腺癌\20250318-svs\codex_test_1834976T_可疑\input
+source: /NAS2/Data1/lbliao/Data/webdata/jobs/ac8ce47011f84da4b7f7f1bb07a84cb9/input
 csv_path: None
-save_dir: D:\Workspace\Work\前列腺癌\20250318-svs\codex_test_1834976T_可疑\result\patches_yolo
+save_dir: /NAS2/Data1/lbliao/Data/webdata/jobs/ac8ce47011f84da4b7f7f1bb07a84cb9/output/patches_yolo
 preset: maixin.csv
 patch_level: 0
 patch_size: 2048

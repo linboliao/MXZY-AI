@@ -8,3 +8,398 @@ patch_level: 0
 patch_size: 2048
 step_size: 2048
 save_path: D:\Workspace\Work\前列腺癌\20250318-svs\codex_test_1834976T_可疑\result\patches_yolo\patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/44961056a6d348f8a5a5777abee09404/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/2213bc542ecd4b10a8a27bbc2fb965b8/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/debug/2213bc54-20260810-212932/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/debug/2213bc54-20260810-212932/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/4190e89fc3464683a0c73919bf3b6fdb/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/ff5400e33bec4f87bb4bca95a6290fd4/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/ff5400e33bec4f87bb4bca95a6290fd4/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/81e3bf604d994411817336f88acc38b2/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/81e3bf604d994411817336f88acc38b2/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/0fb82ee38199406480f4afa77b6d2cac/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/0fb82ee38199406480f4afa77b6d2cac/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/f4824b706eaf446c9bc277af10a5d86a/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/f4824b706eaf446c9bc277af10a5d86a/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/91b9cf1613d74a1780d949997d3e7bbc/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/91b9cf1613d74a1780d949997d3e7bbc/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/975196c9153f432bb1e7b1bfd92e0fe5/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/975196c9153f432bb1e7b1bfd92e0fe5/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/0c1c4153761a472d902d51e08d09c331/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/0c1c4153761a472d902d51e08d09c331/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/609ffe548f4946f48a96cd770ff333ad/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/609ffe548f4946f48a96cd770ff333ad/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/6fd8c1a61f8b499b9b74f9a7c1a506e6/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/12994ede01a7470ea20b8e74982f2d63/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/f3389a8be4084273a3ce4092992700ef/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/f3389a8be4084273a3ce4092992700ef/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/12994ede01a7470ea20b8e74982f2d63/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/6d1da41ab189436ca0ebefef993df80c/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/3aedcdc181bd4184aa76390a6d2bd452/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/3aedcdc181bd4184aa76390a6d2bd452/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/0dfe5a734a6444f696cd76bd2f854c8f/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/6d1da41ab189436ca0ebefef993df80c/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/0dfe5a734a6444f696cd76bd2f854c8f/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/d13fbe7f47d641d698cb5c8a9104236f/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/12427fbb9f4247f2ae81c8996560903f/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/1ce91ba30c4a4caa9fca064e37719ab9/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/12427fbb9f4247f2ae81c8996560903f/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/256965a7cd57487d8d6684544ac348b8/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/1ce91ba30c4a4caa9fca064e37719ab9/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/c3bfd40d0bc04c30be0d03a891f1980d/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/256965a7cd57487d8d6684544ac348b8/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/c3bfd40d0bc04c30be0d03a891f1980d/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/6c235b089de646ecb6fe986f84d0627a/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/6c235b089de646ecb6fe986f84d0627a/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/b3a8d1f1ed7f433e8030a1b65176ff64/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/b3a8d1f1ed7f433e8030a1b65176ff64/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/a7a3bae65e414c759bde41e619ac810f/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/7d839988a18c4a7f877f16c091c78e6e/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/a7a3bae65e414c759bde41e619ac810f/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/7d839988a18c4a7f877f16c091c78e6e/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/cca0621df1214b05bc8eeb2ef10fe2af/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/cca0621df1214b05bc8eeb2ef10fe2af/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/b2a8509e604f40d5aa0ecd376ede7c0a/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/b2a8509e604f40d5aa0ecd376ede7c0a/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/184abbfc50ca48a891483a286d9b125c/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/2f5f3d69e7664b0e9cf0b80c9427477c/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/184abbfc50ca48a891483a286d9b125c/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/2f5f3d69e7664b0e9cf0b80c9427477c/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/ec5e68b996684bacbe159d18910be5ab/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/ec5e68b996684bacbe159d18910be5ab/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/185d64c2e54c47f98ba65df50945670d/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/185d64c2e54c47f98ba65df50945670d/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/e49e31d73fcd408d94fb2e44b4674cd2/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/e49e31d73fcd408d94fb2e44b4674cd2/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/a6fd0bfd0efb4deaa1ad6f2659110671/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/653636326dc84893b33cf49da9e77ea0/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/653636326dc84893b33cf49da9e77ea0/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/da98315c40c74148aafcea113c3be858/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/da98315c40c74148aafcea113c3be858/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/a6fd0bfd0efb4deaa1ad6f2659110671/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/56d6b0044d1740cf9851eafb4925f1ad/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/56d6b0044d1740cf9851eafb4925f1ad/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/df4c96a7530a4e339c807f5ab91ccc55/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/e126959d6dbd407bb43644263be452e5/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/df4c96a7530a4e339c807f5ab91ccc55/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 896
+step_size: 896
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/d70d3ee4953446d08dc74a89bb7f2ca1/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/e126959d6dbd407bb43644263be452e5/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/d70d3ee4953446d08dc74a89bb7f2ca1/output/patches_yolo/patches
+==================================================
+patch_level: 0
+patch_size: 448
+step_size: 448
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/ac8ce47011f84da4b7f7f1bb07a84cb9/output/patches_cls/patches
+==================================================
+patch_level: 0
+patch_size: 2048
+step_size: 2048
+save_path: /NAS2/Data1/lbliao/Data/webdata/jobs/ac8ce47011f84da4b7f7f1bb07a84cb9/output/patches_yolo/patches

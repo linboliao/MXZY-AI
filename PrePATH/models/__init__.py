@@ -2,8 +2,8 @@
 
 import os
 
-
-os.environ.setdefault("HF_HOME", os.path.join("PrePATH", "models", "ckpts", "huggingface"))
+os.environ['HF_ENDPOINT'] = "https://hf-mirror.com"
+os.environ['HF_HOME'] = './models/ckpts/huggingface'
 
 __all__ = ["list_models", "get_model", "get_custom_transformer"]
 
