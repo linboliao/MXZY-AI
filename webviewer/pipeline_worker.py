@@ -18,7 +18,7 @@ def main():
     parser = argparse.ArgumentParser(description="MXZY-AI Web Viewer pipeline worker")
     parser.add_argument("--wsi-dir", required=True)
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--model", default="h-optimus-1")
+    parser.add_argument("--model", default="mstar")
     parser.add_argument(
         "--normal",
         action=argparse.BooleanOptionalAction,

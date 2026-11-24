@@ -8,7 +8,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
-def required_pipeline_assets(normal=True):
+def required_pipeline_assets(normal=True, model="h-optimus-1"):
     cancer_variant = "10x-normal" if normal else "10x"
     assets = [
         "PrePATH/presets/maixin.csv",
@@ -20,6 +20,20 @@ def required_pipeline_assets(normal=True):
         "ultralytics/runs/detect/cbam/weights/best.pt",
         "ultralytics/runs/detect/pki/weights/best.pt",
     ]
+    if model.lower() == "mstar":
+        from PrePATH.models.mstar import WEIGHTS
+
+        assets = [asset for asset in assets if not asset.startswith("MIL_BASELINE/")]
+        assets.append(os.getenv("MAIXIN_MSTAR_WEIGHTS", WEIGHTS))
+        folds = Path(os.getenv(
+            "MAIXIN_MSTAR_MIL_FOLDS",
+            "/NAS145/linboliao/Experiments/ProstateDiagnosis/studies/"
+            "mstar-magnification-comparison/10x/folds",
+        ))
+        for fold in range(1, 6):
+            for filename in ("config.yaml", "checkpoint.pth"):
+                assets.append(str(folds / f"fold-{fold}" / filename))
+        return tuple(assets)
     assets.extend(
         f"MIL_BASELINE/ckpts/cancer/{cancer_variant}/best_f{fold}.pth"
         for fold in range(1, 6)
@@ -27,7 +41,7 @@ def required_pipeline_assets(normal=True):
     return tuple(assets)
 
 
-def check_worker_runtime(normal=True):
+def check_worker_runtime(normal=True, model="mstar"):
     checks = []
     for module_name in ("torch", "openslide", "pandas", "geopandas", "h5py", "timm"):
         try:
@@ -44,11 +58,13 @@ def check_worker_runtime(normal=True):
     except Exception as error:
         checks.append((False, f"CUDA: {error}"))
 
-    for relative_path in required_pipeline_assets(normal=normal):
+    for relative_path in required_pipeline_assets(normal=normal, model=model):
         path = PROJECT_ROOT / relative_path
         valid = path.is_file() and path.stat().st_size > 0
         checks.append((valid, f"模型资产 {relative_path}"))
 
+    if model.lower() == "mstar":
+        return checks
     if os.getenv("HF_TOKEN"):
         checks.append((True, "HF_TOKEN 已配置"))
     else:

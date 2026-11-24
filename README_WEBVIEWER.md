@@ -119,3 +119,11 @@ python -m unittest discover -s tests -v
 - 病理切片属于敏感医疗数据，应落实访问认证、操作审计、磁盘加密、备份和数据保留/删除策略。
 - 当前 UI 仍需增加面向最终用户的登录鉴权，Worker Token 不能替代用户认证。
 - 系统输出仅用于科研和辅助阅片，不能替代执业病理医师诊断。
+
+### mSTAR 10× 推理
+
+新任务默认使用 `WEBVIEWER_PIPELINE_MODEL=mstar`。已有部署配置如果显式设定了 `h-optimus-1`，需要更新该配置后再启动服务。也可以通过 `--model h-optimus-1` 选择原推理路径。
+
+mSTAR 按目标 1.0 µm/px 切块并缩放到 224×224。缺少有效 MPP 时根据物镜倍率估算。该模式使用研究数据的预处理，不启用染色归一化。每张切片由 10× 研究的五个 AB-MIL checkpoint 投票，Gleason 和 ISUP 显示为 `N/A`。
+
+195 上默认读取同节点的 mSTAR 权重和研究目录。其他部署可设置 `MAIXIN_MSTAR_WEIGHTS` 指向 mSTAR 权重文件，并设置 `MAIXIN_MSTAR_MIL_FOLDS` 指向含 `fold-1` 至 `fold-5` 的目录。每折应含 `config.yaml` 和 `checkpoint.pth`。

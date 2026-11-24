@@ -45,7 +45,7 @@ def test(args):
     else:
         mil_model = get_model_from_yaml(yaml_args)
         mil_model = mil_model.to(device)
-        mil_model.load_state_dict(torch.load(model_weight_path, weights_only=True))
+        mil_model.load_state_dict(torch.load(model_weight_path, map_location="cpu", weights_only=True))
 
     if yaml_args.General.MODEL_NAME == 'DTFD_MIL':
         result = dtfd_val_loop(device, num_classes, model_list, test_dataloader, criterion, yaml_args.Model.num_Group, yaml_args.Model.grad_clipping, yaml_args.Model.distill, yaml_args.Model.total_instance)

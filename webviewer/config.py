@@ -57,7 +57,7 @@ class WebViewerConfig:
             server_roots=_parse_server_roots(os.getenv("WEBVIEWER_SERVER_SLIDE_ROOTS", "")),
             max_upload_bytes=int(max_upload_gb * 1024**3),
             pipeline_mode=os.getenv("WEBVIEWER_PIPELINE_MODE", "real").strip().lower(),
-            pipeline_model=os.getenv("WEBVIEWER_PIPELINE_MODEL", "h-optimus-1"),
+            pipeline_model=os.getenv("WEBVIEWER_PIPELINE_MODEL", "mstar"),
             pipeline_normal=_parse_bool(os.getenv("WEBVIEWER_PIPELINE_NORMAL"), True),
             gpu_devices=os.getenv("WEBVIEWER_GPU_DEVICES", "auto").strip(),
             max_parallel_jobs=max(0, int(os.getenv("WEBVIEWER_MAX_PARALLEL_JOBS", "0"))),

@@ -215,7 +215,7 @@ class RemoteWorker:
             "--output-dir",
             str(output_dir),
             "--model",
-            job.get("model") or "h-optimus-1",
+            job.get("model") or "mstar",
             "--normal" if job.get("normal", True) else "--no-normal",
         ]
         env = os.environ.copy()

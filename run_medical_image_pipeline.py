@@ -80,6 +80,7 @@ def get_patch_csv(args):
     output_20 = os.path.join(args.coord_dir, "20x_slides.csv")
     output_10 = os.path.join(args.coord_dir, "10x_slides.csv")
 
+    slides_by_size = defaultdict(list)
     slides_40 = []
     slides_20 = []
     slides_10 = []
@@ -93,7 +94,17 @@ def get_patch_csv(args):
                     with openslide.OpenSlide(slide_path) as wsi:
                         objective = wsi.properties.get('openslide.objective-power', '20')
                         objective_int = int(objective)
-                        if objective_int == 40:
+                        if getattr(args, "model", None) == "mstar":
+                            try:
+                                mpp = float(wsi.properties.get("openslide.mpp-x", "nan"))
+                            except ValueError:
+                                mpp = float("nan")
+                            if not 0.05 < mpp < 5:
+                                if objective_int <= 0:
+                                    raise ValueError("无有效的 MPP 或物镜倍率")
+                                mpp = 10 / objective_int
+                            slides_by_size[max(1, round(224 / mpp))].append(slide_path)
+                        elif objective_int == 40:
                             slides_40.append(slide_path)
                         elif objective_int == 20:
                             slides_20.append(slide_path)
@@ -102,6 +113,16 @@ def get_patch_csv(args):
                 except Exception as e:
                     print(f"处理文件 {slide_path} 时出错: {e}")
                     continue
+
+    if getattr(args, "model", None) == "mstar":
+        if not slides_by_size:
+            raise ValueError("没有可用于 mSTAR 10× 切块的切片")
+        csv_paths = []
+        for size, paths in sorted(slides_by_size.items()):
+            csv_path = os.path.join(args.coord_dir, f"mstar_10x_{size}.csv")
+            pd.DataFrame({"slide_path": paths}).to_csv(csv_path, index=False)
+            csv_paths.append(csv_path)
+        return csv_paths, sorted(slides_by_size)
 
     pd.DataFrame({'slide_path': slides_40}).to_csv(output_40, index=False, encoding='utf-8')
     pd.DataFrame({'slide_path': slides_20}).to_csv(output_20, index=False, encoding='utf-8')
@@ -164,12 +185,12 @@ def gen_test_csv(args):
     df.to_csv(test_csv, index=False)
     return test_csv
 
-def merge_predictions_by_voting(output_dir, model_indices=[0, 1, 2, 3, 4]):
+def merge_predictions_by_voting(output_dir, model_indices=range(5), model_name="CLAM_MB_MIL"):
     slide_predictions = defaultdict(list)
 
     for idx in model_indices:
         result_dir = os.path.join(output_dir, f'cancer/{idx}')
-        result_file = os.path.join(result_dir, 'Infer_Result_CLAM_MB_MIL.csv')
+        result_file = os.path.join(result_dir, f'Infer_Result_{model_name}.csv')
 
         if not os.path.exists(result_file):
             raise FileNotFoundError(f"模型{idx}的结果文件不存在: {result_file}")
@@ -257,7 +278,7 @@ def extract_features(csv_path, args, coord_dir):
         batch_size=48,
         model=args.model,
         custom_downsample=1,
-        target_patch_size=-1,
+        target_patch_size=224 if args.model == "mstar" else -1,
         save_storage='no',
         ignore_partial='yes'
     )
@@ -358,13 +379,22 @@ def run_yolo_parallel(args):
 def run_cls(args):
     path = work_dir.get('mil')
     ckpt = '10x-normal' if args.normal else '10x'
+    use_mstar = args.model == "mstar"
+    folds = Path(os.getenv(
+        "MAIXIN_MSTAR_MIL_FOLDS",
+        "/NAS145/linboliao/Experiments/ProstateDiagnosis/studies/"
+        "mstar-magnification-comparison/10x/folds",
+    ))
     
     for i in range(5):
         cancer_dir = os.path.join(args.output_dir, f'cancer/{i}')
+        fold = folds / f"fold-{i + 1}"
         task_args = argparse.Namespace(
-            yaml_path=os.path.join(path, f'configs/cancer/CLAM_MB_MIL-{args.model}.yaml'),
+            yaml_path=str(fold / "config.yaml") if use_mstar else
+                os.path.join(path, f'configs/cancer/CLAM_MB_MIL-{args.model}.yaml'),
             test_dataset_csv=args.test_csv,
-            model_weight_path=os.path.join(path, f'ckpts/cancer/{ckpt}/best_f{i+1}.pth'),
+            model_weight_path=str(fold / "checkpoint.pth") if use_mstar else
+                os.path.join(path, f'ckpts/cancer/{ckpt}/best_f{i+1}.pth'),
             test_log_dir=cancer_dir
         )
         try:
@@ -373,7 +403,7 @@ def run_cls(args):
             print(f"❌ 癌症诊断 fold {i} 执行失败: {e}")
             return False
 
-    merge_predictions_by_voting(args.output_dir)
+    merge_predictions_by_voting(args.output_dir, model_name="AB_MIL" if use_mstar else "CLAM_MB_MIL")
     return True
 
 def run_isup(args):
@@ -473,7 +503,7 @@ def execute_phase_parallel(tasks, task_names, args, max_workers=2):
 
     return results
 
-def _generate_result_files(output_dir: str) -> None:
+def _generate_result_files(output_dir: str, include_gleason=True) -> None:
     """生成最终的结果文件"""
     result_json = os.path.join(output_dir, 'exist_cancer.json')
     cancer_csv = os.path.join(output_dir, 'cancer/merged_voting_result.csv')
@@ -491,7 +521,8 @@ def _generate_result_files(output_dir: str) -> None:
         raise FileNotFoundError(f"阳性病例缺少 YOLO 面积结果: {tissue_csv}")
     else:
         tissue_df = pd.DataFrame(columns=['slide_id', 'area'])
-    gleason_df = pd.read_csv(gleason_csv, dtype={'slide_id': str})
+    gleason_df = (pd.read_csv(gleason_csv, dtype={'slide_id': str}) if include_gleason
+                  else pd.DataFrame(columns=['slide_id', 'prediction']))
     # isup_df = pd.read_csv(isup_csv, dtype={'slide_id': str})
     import geopandas as gpd
     for slide_id, pred, votes_0 in zip(cancer_df['slide_id'], cancer_df['prediction'], cancer_df['votes_0']):
@@ -563,11 +594,12 @@ def _generate_result_files(output_dir: str) -> None:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 def run_medical_image_pipeline(wsi_dir: str, output_dir: str, slide_list=None, patch_level: int = 0,
-                               wsi_format: str = "svs", model: str = "h-optimus-1", normal=False) -> Dict[str, Any]:
-    # 封装 args
+                               wsi_format: str = "svs", model: str = "mstar", normal=False) -> Dict[str, Any]:
+    model = model.lower()
+    use_mstar = model == "mstar"
     args = argparse.Namespace(
         wsi_dir=wsi_dir, slide_list=slide_list, output_dir=output_dir,
-        patch_level=patch_level, wsi_format=wsi_format, model=model, normal=normal
+        patch_level=patch_level, wsi_format=wsi_format, model=model, normal=normal and not use_mstar
     )
 
     if slide_list:
@@ -589,8 +621,11 @@ def run_medical_image_pipeline(wsi_dir: str, output_dir: str, slide_list=None, p
         args.test_csv = gen_test_csv(args)
 
         st_phase1 = time.time()
-        phase1_tasks = [run_cls, run_gleason, create_patch_yolo]
-        phase1_names = ["癌症诊断", "Gleason诊断", "yolo patching"]
+        phase1_tasks = [run_cls, create_patch_yolo]
+        phase1_names = ["癌症诊断", "yolo patching"]
+        if not use_mstar:
+            phase1_tasks.append(run_gleason)
+            phase1_names.append("Gleason诊断")
 
         phase1_results = execute_phase_parallel(phase1_tasks, phase1_names, args, max_workers=3)
         all_results.update(phase1_results)
@@ -609,7 +644,7 @@ def run_medical_image_pipeline(wsi_dir: str, output_dir: str, slide_list=None, p
         total_time = time.time() - st
         print(f"⏱️ 总执行时间: {total_time:.2f}秒")
 
-        _generate_result_files(output_dir)
+        _generate_result_files(output_dir, include_gleason=not use_mstar)
 
         return {
             "success": True, "results": all_results,
@@ -638,7 +673,7 @@ if __name__ == "__main__":
     wsi_group = parser.add_argument_group("WSI处理参数")
     wsi_group.add_argument("--patch_level", type=int, default=0, help="提取层级")
     wsi_group.add_argument("--wsi_format", default="svs;kfb", help="slide 格式")
-    wsi_group.add_argument("--model", default="h-optimus-1", help="基础模型")
+    wsi_group.add_argument("--model", default="mstar", help="基础模型")
     wsi_group.add_argument("--normal", type=bool, default=True, help="归一化")
     
     # 任务控制组

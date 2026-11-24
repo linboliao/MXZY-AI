@@ -22,7 +22,7 @@ def main():
     config = RemoteWorkerConfig.from_environment()
     worker = RemoteWorker(config)
     if args.check:
-        runtime_ok = print_checks(check_worker_runtime())
+        runtime_ok = print_checks(check_worker_runtime(model=os.getenv("WEBVIEWER_PIPELINE_MODEL", "mstar")))
         try:
             health = worker.client.health()
             print(f"[OK] UI 网关连接成功: {config.gateway_url} ({health.get('status', 'unknown')})")
